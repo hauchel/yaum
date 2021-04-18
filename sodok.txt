@@ -1,0 +1,122 @@
+todo:
+spannung
+rtc
+Slave Adressen
+FileS 42
+
+
+Master, slave, fileSlave
+Master -> 				Slave:
+Cn  Command n		    slCmd
+Fa	Feld holen			Feld-> buf
+Fb
+Fc
+O   open file nnn
+G   read game nnn
+W   write game nnn ?
+Xa  Feld senden			storefld
+Xb
+Xc
+Status Frage			runS runR slCmd
+Dn Datei 0..9 öffnen    
+
+
+
+Slave im receive event (cluslave.h) stellt gewünschtes in buffer
+Master request, buffer wird übertragen.
+Übertragene Daten absichtlich Klartext, feld z.B. könnte da nur 0..9 leicht komprimiert werden.
+Da es beim fileS etwas länger dauern kann wird runS auf Busy gesetzt, wenn fertig auf Open. 
+Es dürfen keine read/write Anfragen gesendet werden wenn runS nicht Open ist.
+wenn beim Status slCmd ungleich space ist wurde dies noch nicht ausgeführt
+Die dateien müssen 81 char + LF = 82 sein. Benutze Notepad ++ Edit Eol conversion unix.
+falls kein LF erkannt wird geht runS auf Error.
+
+
+Functionality     Sudok   Slave   Master  FileS
+Zeig Feld			f		f		f
+get Game			g				g
+open Gamefile								o
+my TWI Adr			v		v				v
+debuglevel			z		
+					Z		zZ		zZ	  	zZ
+					
+				  Sudok   Master nc
+execute				x		1
+sho field			f		2
+sho lev				l		3		
+sort u				u		4
+sort a				a 		5	
+abort	  			X		9
+
+				  FileS   Master nc
+openFile			on		1
+readGame
+
+
+
+				 Master
+Command 			c
+
+hole Fld			h
+schicke Fld			j
+request inp			r
+scan TWI			d
+set TWI freq		e
+info				i
+switch fileMode
+slaves	show		o
+slave select		p
+slave query			q
+slave adr set		m,M
+change target twi	V
+
+tasks show			l
+task kill			k		
+task new			n	
+tasks assign		a
+
+slave states
+	I dle
+	R unning
+	C omplete 0 solved else err
+
+task states
+	I dle
+	W aiting
+	R unning
+	C omplete
+	K illed
+
+Ablauf:
+v	verify tasks 	books completed tasks
+a   assign 		if slave avail assigns task with W
+b	begin		find games to queue (check autoBegin		
+
+n	new task  puts game inp in queu state W
+G	setze myGam
+A   setze anzGam
+F   setze fileMode
+x	automatisch ab myGam 
+X	wie x aber VT100 mode
+
+
+Master zeigs 
+0	nix nur Err
+1
+2	Inhalt von Request , tasks, online
+
+5	Ablauf
+
+
+Feld   (10)(11)(12)    (13)(14)(15)    (16)(17)(18)
+(19)	 1	 2	 3		 4	 5	 6		 7	 8	 9
+(20)	10	11	12		13	14	15		16	17	18
+(21)	19
+
+(22)	28
+(23)	37
+(24)	46
+
+(25)	55	56	57		58	59	60
+(26)	64				67	68	69
+(27)	73
