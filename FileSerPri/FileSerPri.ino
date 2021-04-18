@@ -26,15 +26,10 @@ uint32_t inp;
 byte zeigClu = 0; // debug output
 bool inpAkt;
 
-#define ANZFIL 6
-const char fileNames [ANZFIL][12] = { // index.txt
-  {"prnul.txt"}, // 0
-  {"prein.txt"}, // 1
-  {"przwo.txt"}, // 2
-  {"prdre.txt"}, // 3
-  {"prvie.txt"}, // 4
-  {"prfun.txt"}, // 5
-};
+File myFile;
+char logNam[13];
+// filname prinnnn.txt
+#define ANZFIL 9999
 
 
 void  getSlNum() {
@@ -53,12 +48,12 @@ void  getSlNum() {
 }
 
 byte receiveHandle() {
-  // char   Auftrag                         Master
-  // Cx               slCmd
-  // L     LnnnnL     logge nummer        y
-  // O     OnnnnO     open file nummer    Y
-  // S     provide Status runS runR       q
-  // V      set twi Adr nummer            V
+  // char   Auftrag                    Master (o.G.)
+  // Cx    slCmd
+  // L     LnnnL      logge nummer        y
+  // O     OnnnO      open file nummer    Y
+  // S     provide Status runS runR slCmd q
+  // V     set twi Adr nummer             V
 
   char ch;
   ch = recvBuf[0];
@@ -87,7 +82,6 @@ byte receiveHandle() {
 }
 
 void receiveEvent(int howMany) {
-  ledOn(1);
   recvP = 0;
   char c;
   while (0 < Wire.available())   {
@@ -105,39 +99,35 @@ void requestEvent() {
   for (byte k = 0; k < backP; k++) {
     Wire.write(backBuf[k]);
   }
-  ledOn(1);
 }
-
-
-File myFile;
-char logNam[13];
 
 bool noFile() {
   if (!myFile) {
     msgF(F("Err no File"), 0);
+    runS='E';
     return true;
   }
   return false;
 }
 
-byte openLogFile(byte nr) {
+byte openLogFile(uint16_t nr) {
   runS = 'B';
+  runR = '0'; // not used
   if (myFile) {
     myFile.close();
   }
-  if (nr >= ANZFIL) {
-    msgF(F("open num hi"), nr);
+  if (nr > ANZFIL) {
+    msgF(F("open num hi"), ANZFIL);
     runS = 'E';
     return false;
   }
 
-  strcpy(logNam, fileNames[nr]);
-  Serial.print(F(" Log "));
+  sprintf(logNam, "prim%04u.txt", nr);
+  Serial.print(F("Log to "));
   Serial.println(logNam);
   myFile = SD.open(logNam, FILE_WRITE);
   if (myFile) {
     runS = 'O';
-    runR = nr + '0';
     return true;
   } else {
     msgF(F("Error opening file"), nr);
@@ -182,6 +172,7 @@ void logRecvBuf() {
   }
   myFile.println("<");
   Serial.println(F("<"));
+  runS = 'O';
 }
 
 void logSlNum() {
@@ -189,15 +180,6 @@ void logSlNum() {
   msgZ(1, F("Log Num") , slNum);
   myFile.println(slNum);
   runS = 'O';
-}
-
-void ledOn(byte n) {
-  digitalWrite(ledPin, HIGH);
-  ledCnt = n;
-}
-
-void ledOff() {
-  digitalWrite(ledPin, LOW);
 }
 
 void info() {
@@ -219,8 +201,6 @@ void setup() {
   runS = 'B';
   Serial.begin(38400);
   Serial.println(ich);
-  pinMode(ledPin, OUTPUT);
-  ledOn(1);
   Serial.println(F("Initializing SD card..."));
   if (!SD.begin(10)) {
     Serial.println(F("SD card initialization failed!"));
@@ -330,7 +310,7 @@ void loop() {
      } else {
        ledCnt--;
      }
-    } // tick
+  // tick
   */
   if (slCmd != ' ') {
     if (zeig > 5) {
@@ -341,5 +321,5 @@ void loop() {
     }
     doCmd(slCmd);
     slCmd = ' ';
-  } //
+  } // slCmd
 }

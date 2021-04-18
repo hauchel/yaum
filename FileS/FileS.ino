@@ -181,15 +181,6 @@ int getFreeMemory() {
 }
 
 
-void ledOn(byte n) {
-  digitalWrite(ledPin, HIGH);
-  ledCnt = n;
-}
-
-void ledOff() {
-  digitalWrite(ledPin, LOW);
-}
-
 void info() {
   Serial.println();
   Serial.print(F("runS "));
@@ -214,8 +205,6 @@ void setup() {
   runS = 'B';
   Serial.begin(38400);
   Serial.println(ich);
-  pinMode(ledPin, OUTPUT);
-  ledOn(1);
   Serial.println(F("Initializing SD card..."));
   if (!SD.begin(10)) {
     Serial.println(F("SD card initialization failed!"));

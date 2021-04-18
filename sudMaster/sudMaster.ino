@@ -1,4 +1,3 @@
-#define ANZSLA 11  // slaves max from 1 see ANZEPR in clucom.h
 #define ANZTSK 11  // tasks from 1
 #include <cluCom.h>
 #include <cluComSud.h>
@@ -23,8 +22,6 @@ const static unsigned char PROGMEM games [ANZGAM][ANZFLD] = {
 
 byte target = 4;        //twi-adr of current slave
 byte targetFS = 42;     //twi-adr of fileS
-bool vt100Mode = false; // true use vt100 features
-byte slaSel = 1;        // selector slavelist
 bool autoRun = false;   // true manage tasks
 bool autoBegin = false;  // true generate new games
 bool fileMode = true;   // use fileS or flash
@@ -35,14 +32,6 @@ byte tarr = 0;          //task round robin
 byte recvP = 0;
 char recvBuf[32];
 byte zeigClu = 0;
-
-typedef struct {
-  byte slaAdr;    // physical twi = target, 0 not in use
-  char slaRunS;   // state I R C E
-  char slaRunR;   // result of exec if C
-  byte slaTask;   // called by this task
-} slaInfoT;
-slaInfoT slaInfo[ANZSLA];
 
 typedef struct {
   byte tskStat;     // Waiting Running Complete Killed
@@ -325,34 +314,6 @@ void sendCmd(byte b) {
   txt[2] = 0;
   sende(txt);
   query(0);
-}
-
-void showSlaves() {
-  char str[50];
-  if (vt100Mode) {
-    vt100Home();
-  } else {
-    Serial.println();
-  }
-  Serial.println(F("       epr  adr  S R     Tsk"));
-  for (byte k = 1; k < ANZSLA; k++) {
-    if (vt100Mode) {
-      if ( slaInfo[k].slaAdr != 0) {
-        sprintf(str, "%2d   %3d  %3d  %c %c      %2d", k, eeData.info.slav[k], slaInfo[k].slaAdr, slaInfo[k].slaRunS, slaInfo[k].slaRunR, slaInfo[k].slaTask);
-        Serial.print(str);
-        vt100ClrEol();
-        Serial.println();
-      }
-    } else {
-      if (k == slaSel) {
-        Serial.print (" >");
-      } else {
-        Serial.print ("  ");
-      }
-      sprintf(str, "%2d   %3d  %3d  %c %c      %2d", k, eeData.info.slav[k], slaInfo[k].slaAdr, slaInfo[k].slaRunS, slaInfo[k].slaRunR, slaInfo[k].slaTask);
-      Serial.println(str);
-    } // vt100
-  } //
 }
 
 byte freeSlave() {
@@ -682,7 +643,7 @@ void doCmd( char tmp) {
       break;
     case 'M':   //
       slaInfo[slaSel].slaAdr = inp;
-      eeData.info.slav[slaSel] = inp;
+      eeData.info.slaAdr[slaSel] = inp;
       setEprom();
       showSlaves();
       break;
@@ -763,8 +724,8 @@ void setup() {
   ledOn(1);
   getEprom();
   for (byte k = 1; k <ANZSLA; k++) {
-    if (eeData.info.slav[k] < 127) {
-      slaInfo[k].slaAdr = eeData.info.slav[k];
+    if (eeData.info.slaAdr[k] < 127) {
+      slaInfo[k].slaAdr = eeData.info.slaAdr[k];
     }
   }
 }

@@ -13,7 +13,7 @@ unsigned long currTim, startTim, endTim;
 unsigned long nexTim = 0;
 unsigned long tick = 1000;     //
 byte myAdr = 4;
-bool slaAkt = false;  // if true show only active slaves
+bool slaAkt = true;  // if true show only active slaves
 byte zeig = 0; // debug
 bool vt100Mode = false; // true use vt100 features
 
@@ -49,18 +49,6 @@ void msgZ(byte lvl, const __FlashStringHelper *ifsh, uint16_t n) {
   prnt(p);
   Serial.println(n);
 }
-
-/*   as it disturbes SPI (!)
-  void ledOn(byte n) {
-  // digitalWrite(ledPin, HIGH); might cause problems with units using SPI, must be handled there
-  ledCnt = n;
-  }
-
-  void ledOff() {
-  //digitalWrite(ledPin, LOW);
-  }
-
-*/
 
 void vt100Esc(byte n, char c) {
   char str[15];
@@ -132,7 +120,7 @@ byte slaSel = 1;        // selector slavelist
 /* Example:
        epr  adr typ  S R     Tsk
    1    11   11   2  I a     0
- > 2    12    0   2          0
+  > 2    12    0   2          0
    3    13    0   2          0
    shown by (o)nline, (O) toggles to show only adr!=0
    >  : selected (p)

@@ -1,3 +1,4 @@
+// factorize numbers  and find primes
 // must use optiboot loader as it writes to own flash
 #include "optiboot.h"
 #define NUMBER_OF_PAGES 55   // number of pages to use (limited by flash size)
@@ -23,14 +24,9 @@ const static unsigned char PROGMEM prim8 [ANZPR8] = // one byte primes
   73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173,
   179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 0
 };
+//
+const uint64_t primTst64[10] = {0, 30781L * 30803L, 33359L * 33359L, 56003, 61967, 57667, 56003, 65535, 4294967295UL, 18446744073709551615ULL}; // recall using p
 
-const uint64_t primTst64[10] = {0, 30781L * 30803L, 33359L * 33359L, 56003, 61967, 57667, 56003, 61967, 57667, 56003}; // recall using p
-/*
-  uint8_t  my08 = 255;
-  uint16_t my16 = 65535;
-  uint32_t my32 = 4294967295UL;
-  uint64_t my64 = 18446744073709551615ULL;
-*/
 uint64_t  inp;
 bool inpAkt;                  // true if last input was a digit
 const byte inpSM = 10;        // Stack for inps size
@@ -41,11 +37,11 @@ uint64_t memo[memoM];         //
 
 // zeigs:
 const byte zFlow = 1;
-const byte zNew = 2;    //
-const byte zTeach = 4;    //
-const byte zFact = 8;    //
+const byte zNew = 2;        //
+const byte zTeach = 4;      //
+const byte zFact = 8;       //
 const byte zCheck = 64;
-const byte zDet = 128;    //Detail
+const byte zDet = 128;      // Detail
 
 // allocate flash to write to, must be initialized, one more than used as 0 for EOS
 const uint8_t flashSpace[SPM_PAGESIZE * (NUMBER_OF_PAGES + 1)] __attribute__ (( aligned(SPM_PAGESIZE) )) PROGMEM = {"\x0"}; //
@@ -69,15 +65,15 @@ void writePage(uint16_t page) {
 }
 
 byte checkP8_64(uint64_t z) {
-  // checks z for divisions by primes <255
+  // checks ULL z for divisions by primes <255
   // returns 0 if prime, else divisor
   byte b = !0;  // current divisor
   byte pp = 0;   // pointer to prime
   uint64_t rem;
   while (b != 0) {
     b = pgm_read_byte(&prim8[pp++]);
-    //    Serial.print (b);
-    //    Serial.print ("  ");
+    if (b == 0) break; //end of flash
+    if (b == z) return 0;
     rem = z % b;
     if (rem == 0) break;
     //    Serial.println (uint32_t(rem));
@@ -86,6 +82,7 @@ byte checkP8_64(uint64_t z) {
 }
 
 byte checkP8_16(uint16_t z) {
+  // checks U z for divisions by primes <255
   byte b = !0;
   byte pp = 0;
   uint16_t rem;
@@ -95,6 +92,8 @@ byte checkP8_16(uint16_t z) {
       Serial.print (b);
       Serial.print ("  ");
     }
+    if (b == 0) break; //end of flash
+    if (b == z) return 0;
     rem = z % b;
     if (rem == 0) break;
   }
@@ -113,7 +112,7 @@ uint16_t checkP16_64(uint64_t z) {
       Serial.print (b);
       Serial.print ("  ");
     }
-    if (b == 0) return 0; //end of flash
+    if (b == 0) break; //end of flash
     if (b == z) return 0; // tbd more than sqrt
     rem = z % b;
     if (rem == 0) return b; //divisor b found
@@ -168,8 +167,7 @@ void doIndex(byte pag) {
   }
   Serial.println();
   uint16_t b = !0;
-  uint16_t pp = pag * SPM_PAGESIZE;
-  pag = 1; // pages start at 1
+  uint16_t pp = SPM_PAGESIZE * (pag - 1);
   while (b != 0) {
     b = pgm_read_word(&flashSpace[pp]);
     if (b == 0) break;
@@ -623,11 +621,11 @@ bool doCmdCalc(char ch) {
 void help () {
   Serial.println (F("Slave commands:"));
   Serial.println (F("Calcula:  ,(push) + - * /   ,m>(store)  m<(get)  ~(swap)  p(rim)"));
-  Serial.println (F("PrimChk:  a 8,  b 16,  c 24,  d 32"));
+  Serial.println (F("PrimChk:  a 8,  b 16,  c 24,  d 32, k(Range)"));
   Serial.println (F("Chunk  :  r(ead),  w(rite),  s(how),  g(enerate),  t(each),  y(nit) "));
   Serial.println (F("Debug  :  Z z: Flow 1, New 2, Teach 4, Fact 8, Check 64, Det 128 "));
-  Serial.println (F("Info   :  i I j J(anaflash)  l(index)"));
-  Serial.println (F("Remote :  G(ener) R(ead) F(ield)  "));
+  Serial.println (F("Info   :  I j J(anaflash)  0l(index)"));
+  Serial.println (F("Remote :  G(ener) R(ead) F(ield)  K"));
 }
 
 void doCmd( char ch) {
@@ -696,7 +694,6 @@ void doCmd( char ch) {
       generate(slNum);
       break;
     case 'i':   //
-
       break;
     case 'I':   //
       showInfo();
@@ -715,14 +712,17 @@ void doCmd( char ch) {
       showTim();
       break;
     case 'K':   //
-      msg64(F("Check Range"), slNum);
+      if (zeig & zFlow) msg64(F("Check Range"), slNum);
       startTim = millis();
       res8 = checkRange(slNum);
       endTim = millis();
       runR = res8 + '0'; // number of primes found
-      msgF(F("Primes found"), res8);
-      // transfer to buff
-      showTim();
+      if (zeig & zFlow) {
+        msgF(F("Primes found"), res8);
+        showTim();
+      } else {
+         elaTim = endTim - startTim;
+      }
       break;
     case 'l':   //
       doIndex(inp);
@@ -810,7 +810,7 @@ void loop() {
 
   if (slCmd != ' ') { // masters voice
     runR = '?'; // to store result
-    msgF(F("slCmd ist "), slCmd);
+    if (zeig & zFlow) msgF(F("slCmd ist "), slCmd);
     doCmd(slCmd);
     slCmd = ' ';
     runS = 'C';

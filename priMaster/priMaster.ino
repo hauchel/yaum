@@ -1,4 +1,10 @@
-#define ANZTSK 11  // tasks from 1
+// Majestro for Prime Concert
+// Todo:
+// RTC
+// LED-Display
+// remember last prime checked
+// ...
+#define ANZTSK 15  // tasks from 1
 #include <cluCom.h>
 #include <cluComPri.h>
 byte target = 4;        //twi-adr of current slave
@@ -202,14 +208,14 @@ bool checkFS() {
   // wait until target not busy, returns true if ready
   char str[20];
   byte cnt = 10;
-  delay(2); // slave needs time
+  delay(5); // slave needs time
   while (cnt > 0) {
     cnt--;
     queryStat(0);
-    sprintf(str, "Check %2d %c %c", recvP, recvBuf[0], recvBuf[1]);
-    Serial.println(str);
     if (recvBuf[0] == 'B') {
-      delay(10);
+      sprintf(str, "Check %2d %c %c", recvP, recvBuf[0], recvBuf[1]);
+      Serial.println(str);
+      delay(5);
     } else {
       if (recvBuf[0] == 'E') {
         Serial.println(F("CheckFS Error"));
@@ -231,7 +237,7 @@ void addprime() {
     if (num == 0) break;
     checkFS();
     sendeNummer('L', num);
-    msg64(F("addPrime"), num);
+    if (zeig & zFlow) msg64(F("addPrime"), num);
   }
   target = targetS;
 }
@@ -355,7 +361,7 @@ void openFile(uint16_t i) {
 void showTasks() {
   char str[100], strZ[50];
   Serial.println();
-  Serial.println(F("    St  Slv Srt S R"));
+  Serial.println(F("    St  Slv Srt   Num"));
   for (byte k = 1; k < ANZTSK; k++) {
     format64(strZ, tskInfo[k].tskZahl);
     sprintf(str, "%2d  %c   %2d  %c  %c %c %s", k, tskInfo[k].tskStat, tskInfo[k].tskSlv, tskInfo[k].tskSrt, tskInfo[k].tskRunR, tskInfo[k].tskRunS, strZ);
@@ -452,7 +458,7 @@ void startTask(byte ta, byte sl) {
   tskInfo[ta].tskSlv = sl;
   slaInfo[sl].slaTask = ta;
   slaInfo[sl].slaRunS = 'R';
-  //fetch game, transfer and start
+  // start
   byte targetS = target;
   target = slaInfo[sl].slaAdr;
   sendeZahl('K', tskInfo[ta].tskZahl);
@@ -575,10 +581,10 @@ void help () {
   Serial.println (F("Tasks  :  a(ssign), b(egin), g(o teachIn), k(ill), l(ist),  n(ew), N(ew)"));
   Serial.println (F("Queries:  q(uery), e(elapsed), G(topPrim) "));
   Serial.println (F("Sends  :  c(ommand), h(new), f(ield) r(ead) s "));
-  Serial.println (F("Slaves :  d(etect), A(nf), E(set freq), m M p P, O,o(verview), t(arget), T(icks), V(set twi adr)"));
-  Serial.println (F("Debug  :  Z z: zFlow 1, zNew 2, zTeach 4, zCheck 64, zDet 128 "));
-  Serial.println (F("Info   :  i I j s"));
-  Serial.println (F("Remote :  G(ener) R(ead) F(ield) Y(openfile)  "));
+  Serial.println (F("Slaves :  d(etect), A(nf), E(set freq), m M p P, O,o(verview), t(arget),, V(set twi adr)"));
+  Serial.println (F("Debug  :  Z, z: zFlow 1, zNew 2, zTeach 4, zCheck 64, zDet 128 "));
+  Serial.println (F("Info   :  i I j s u(tick)"));
+  Serial.println (F("Remote :  G(ener) R(ead) F(ield)  T(each) Y(openfile)  y(lognumber)"));
 }
 
 void doCmd( char tmp) {
@@ -694,6 +700,10 @@ void doCmd( char tmp) {
     case 'p':   //
       slaSel = inp;
       showSlaves();
+      if (slaInfo[slaSel].slaAdr != 0) {
+        target = slaInfo[slaSel].slaAdr;
+        msgF(F("Target "), target);
+      }
       break;
     case 'P':   //
       slaInfo[slaSel].slaTyp = inp;
@@ -715,6 +725,9 @@ void doCmd( char tmp) {
       msgF(F("Target"), target);
       break;
     case 'T':   //
+      sendeZahl('T', inp);
+      break;
+    case 'u':   //
       tick = inp;
       msgF(F("Tick is"), tick);
       break;
@@ -738,7 +751,7 @@ void doCmd( char tmp) {
       }
       break;
     case 'y':   //
-      target=targetFS;
+      target = targetFS;
       checkFS();
       sendeNummer('L', inp);
       checkFS();

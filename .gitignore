@@ -1,0 +1,5 @@
+.tmp.drivedownload/
+*.drivedownload
+*.driveupload
+*.hex
+

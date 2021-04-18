@@ -1,4 +1,4 @@
-// common stuff required primes and 64-bit.
+// common stuff required primes and 64-bit. 
 typedef union {
   uint64_t za64;
   uint32_t za32[2];
