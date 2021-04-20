@@ -25,6 +25,9 @@ uint32_t slNum = 0; //      "   after some cmds
 uint32_t inp;
 byte zeigClu = 0; // debug output
 bool inpAkt;
+#define QUEMAX 20
+uint32_t que[QUEMAX];
+byte queInP, queOutP;
 
 File myFile;
 char logNam[13];
@@ -33,7 +36,7 @@ char logNam[13];
 
 
 void  getSlNum() {
-  //  transfers to slNum
+  //  transfers readable to slNum
   char c;
   byte k = 1;
   slNum = 0;
@@ -47,10 +50,25 @@ void  getSlNum() {
   }
 }
 
+void get4Que() {
+  //  transfers to que, assumes 1+8 bytes, no further checks
+  byte p = 1;
+  zahl_t num ;
+  num.za64 = 0;
+  for (byte k = 0; k < 8; k++) {
+    num.za08[k] = recvBuf[p++];
+  }
+  que[queInP++] = num.za32[0];
+  if (queInP >= QUEMAX) queInP = 0;
+  if (zeig > 3) {
+    msg64(F("inp add "), num.za32[0]);
+  }
+}
+
 byte receiveHandle() {
   // char   Auftrag                    Master (o.G.)
   // Cx    slCmd
-  // L     LnnnL      logge nummer        y
+  // L     Lb8L       nummer to que        y
   // O     OnnnO      open file nummer    Y
   // S     provide Status runS runR slCmd q
   // V     set twi Adr nummer             V
@@ -62,6 +80,10 @@ byte receiveHandle() {
       slCmd = recvBuf[1];
       break;
     case 'L':
+      runS = 'B';
+      get4Que();
+      runS ='O';
+      break;
     case 'O':
     case 'V':
       runS = 'B';
@@ -83,6 +105,7 @@ byte receiveHandle() {
 
 void receiveEvent(int howMany) {
   recvP = 0;
+  if (howMany == 0) return;
   char c;
   while (0 < Wire.available())   {
     c = Wire.read();
@@ -104,7 +127,7 @@ void requestEvent() {
 bool noFile() {
   if (!myFile) {
     msgF(F("Err no File"), 0);
-    runS='E';
+    runS = 'E';
     return true;
   }
   return false;
@@ -121,7 +144,8 @@ byte openLogFile(uint16_t nr) {
     runS = 'E';
     return false;
   }
-
+  queInP = 0;
+  queOutP = 0;
   sprintf(logNam, "prim%04u.txt", nr);
   Serial.print(F("Log to "));
   Serial.println(logNam);
@@ -175,11 +199,10 @@ void logRecvBuf() {
   runS = 'O';
 }
 
-void logSlNum() {
+void logNum(uint32_t num) {
   if (noFile()) return;
-  msgZ(1, F("Log Num") , slNum);
-  myFile.println(slNum);
-  runS = 'O';
+  if (zeig > 1)  msg64(F("Log Num") , num);
+  myFile.println(num);
 }
 
 void info() {
@@ -188,12 +211,14 @@ void info() {
   Serial.print(runS);
   Serial.print(F("  runR "));
   Serial.println(runR);
-
+  msgF(F("queInP "),queInP);
+  msgF(F("queOoutP"),queOutP);
   if (myFile) {
     Serial.print(logNam);
   } else {
     Serial.println(F("No File open"));
   }
+  
 }
 
 void setup() {
@@ -204,13 +229,13 @@ void setup() {
   Serial.println(F("Initializing SD card..."));
   if (!SD.begin(10)) {
     Serial.println(F("SD card initialization failed!"));
-    return;
+    runS = 'E';
   }
   getMyAdr();
   Wire.begin(myAdr);
   Wire.onReceive(receiveEvent);
   Wire.onRequest(requestEvent);
-  runS = 'I';
+  if (runS != 'E') runS = 'I';
 }
 
 
@@ -258,11 +283,9 @@ void doCmd( char tmp) {
       info();
       break;
     case 'l':
-      slNum = inp;
-      logSlNum();
-      break;
-    case 'L':   //
-      logSlNum();
+      que[queInP++] = inp;
+      if (queInP >= QUEMAX) queInP = 0;
+      msgF(F("QueInP"),queInP);
       break;
     case 'o':   //
       msgF(F("Open"), openLogFile(inp));
@@ -310,8 +333,12 @@ void loop() {
      } else {
        ledCnt--;
      }
-  // tick
+    // tick
   */
+  while (queInP != queOutP) {
+    logNum(que[queOutP++]);
+    if (queOutP >= QUEMAX) queOutP = 0;
+  }
   if (slCmd != ' ') {
     if (zeig > 5) {
       Serial.print(F("Loop slCmd "));

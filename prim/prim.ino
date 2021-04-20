@@ -1,7 +1,7 @@
 // factorize numbers  and find primes
 // must use optiboot loader as it writes to own flash
 #include "optiboot.h"
-#define NUMBER_OF_PAGES 55   // number of pages to use (limited by flash size)
+#define NUMBER_OF_PAGES 102   // number of pages 102 fits all 2-byte primes
 #define VERSION 'c'
 #include <cluCom.h>
 #include <cluComPri.h>
@@ -24,8 +24,8 @@ const static unsigned char PROGMEM prim8 [ANZPR8] = // one byte primes
   73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173,
   179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 0
 };
-//
-const uint64_t primTst64[10] = {0, 30781L * 30803L, 33359L * 33359L, 56003, 61967, 57667, 56003, 65535, 4294967295UL, 18446744073709551615ULL}; // recall using p
+//                                                                        3: 257 exp 4                                 8: max 4 byte  9: max 8 byte
+const uint64_t primTst64[10] = {0, 30781UL * 30803UL, 33359UL * 33359UL, 1121154893057ULL, 61967, 57667, 56003, 65535, 4294967295UL, 18446744073709551615ULL}; // recall using p
 
 uint64_t  inp;
 bool inpAkt;                  // true if last input was a digit
@@ -171,7 +171,7 @@ void doIndex(byte pag) {
   while (b != 0) {
     b = pgm_read_word(&flashSpace[pp]);
     if (b == 0) break;
-    sprintf(str, "%2u at %4u is %6u ", pag, pp, b);
+    sprintf(str, "%3u at %4u is %6u ", pag, pp, b);
     Serial.println (str);
     pag++;
     pp += SPM_PAGESIZE;
@@ -180,6 +180,7 @@ void doIndex(byte pag) {
 
 uint16_t new16(uint16_t n) {
   // creates new 16 chunk starting from n, sets topPrime, returns last prime+2
+  // watch for overrun
   byte b = !0;
   byte chu16P;
   msgL(zNew, F("new 16 Start"), n);
@@ -199,12 +200,16 @@ uint16_t new16(uint16_t n) {
   chunk.chu16.za16[chu16P++] = n;
   while (chu16P < 64) {
     n = n + 2;
-    msgL(zNew, F("new 16 build"), n);
-    b = checkP8_16(n);
-    if (b == 0) {
-      chunk.chu16.za16[chu16P++] = n;
-      msgL(zNew, F("new Prime"), chu16P);
-    }
+    if (n < 127) { // overrun, write zeros
+      chunk.chu16.za16[chu16P++] = 0;
+    } else {
+      msgL(zNew, F("new 16 build"), n);
+      b = checkP8_16(n);
+      if (b == 0) {
+        chunk.chu16.za16[chu16P++] = n;
+        msgL(zNew, F("new Prime"), chu16P);
+      } // prime
+    } // valid n
   }  // 64
   topPrim = n;
   return n + 2;
@@ -441,6 +446,18 @@ void requestEvent() {
   ledOn(1);
 }
 
+
+uint64_t mulChu16() {
+  // smultiply how chunk for 2 byte values
+  char str[50];
+  uint64_t n=1;
+  for (byte k = 0; k < 64; k++) {
+    if (chunk.chu16.za16[k] == 0) break;
+    n=n*chunk.chu16.za16[k];
+  }
+  msg64(F("mul="),n);
+  return n;
+}
 void factorize(uint64_t num) {
   // put result in 64*2 byte chunk
   byte pp = 0;
@@ -500,11 +517,11 @@ void showInfo() {
   char str[100];
   sprintf(str, "prim8: = %p\n", prim8);
   Serial.print(str);
-  sprintf(str, "flashSpace[0]  = %p\n", &flashSpace[0]);
+  sprintf(str, "flashSpace[0]   %p\n", &flashSpace[0]);
   Serial.print(str);
-  sprintf(str, "flashSpace[max] = %p\n", &flashSpace[SPM_PAGESIZE * NUMBER_OF_PAGES - 1]);
+  sprintf(str, "flashSpace[max] %p\n", &flashSpace[SPM_PAGESIZE * NUMBER_OF_PAGES - 1]);
   Serial.print(str);
-  msgF(F("Chunks:"),  NUMBER_OF_PAGES);
+  msgF(F("Pages:"),  NUMBER_OF_PAGES);
   msgF(F("Flash space use:"), sizeof(flashSpace));
 }
 
@@ -590,7 +607,14 @@ bool doCmdCalc(char ch) {
       inp = slNum;
       slNum = zwi;
       showJ();
-      msgF(F("Swap with slNum"), inp);
+      msg64(F("Swap with slNum"), inp);
+      break;
+    case '#':   //
+      zwi = inp;
+      inp = inpStck[0];
+      inpStck[0] = zwi;
+      showJ();
+      msg64(F("Swap with stack"), inp);
       break;
     case '<':   //
       memo2Inp();
@@ -620,7 +644,7 @@ bool doCmdCalc(char ch) {
 
 void help () {
   Serial.println (F("Slave commands:"));
-  Serial.println (F("Calcula:  ,(push) + - * /   ,m>(store)  m<(get)  ~(swap)  p(rim)"));
+  Serial.println (F("Calcula:  ,(push) + - * /   ,m>(store)  m<(get)  ~(swap) #(x~y) p(rim)"));
   Serial.println (F("PrimChk:  a 8,  b 16,  c 24,  d 32, k(Range)"));
   Serial.println (F("Chunk  :  r(ead),  w(rite),  s(how),  g(enerate),  t(each),  y(nit) "));
   Serial.println (F("Debug  :  Z z: Flow 1, New 2, Teach 4, Fact 8, Check 64, Det 128 "));
@@ -656,14 +680,23 @@ void doCmd( char ch) {
       startTim = millis();
       res8 = checkP8_64(inp);
       endTim = millis();
-      msgF(F(" checkP8_64:"), res8);
+      msgF(F("checkP8_64:"), res8);
+      // posible division
+      if (res8 != 0) {
+        inpPush();
+        inp = res8;
+      }
       showTim();
       break;
     case 'b':   //
       startTim = millis();
       res16 = checkP16_64(inp);
       endTim = millis();
-      msgF(F(" checkP16_64:"), res16);
+      if (res16 != 0) {
+        inpPush();
+        inp = res16;
+      }
+      msgF(F("checkP16_64:"), res16);
       showTim();
       break;
     case 'c':   //  P24_
@@ -686,6 +719,7 @@ void doCmd( char ch) {
       endTim = millis();
       showTim();
       showChu16();
+      mulChu16();
       break;
     case 'g':   //
       generate(inp);
@@ -721,7 +755,7 @@ void doCmd( char ch) {
         msgF(F("Primes found"), res8);
         showTim();
       } else {
-         elaTim = endTim - startTim;
+        elaTim = endTim - startTim;
       }
       break;
     case 'l':   //

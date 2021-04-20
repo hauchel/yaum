@@ -17,7 +17,9 @@ byte tarr = 0;          //task round robin
 byte recvP = 0;
 char recvBuf[32];
 byte zeigClu = 0;
-
+long primCnt;           // primes found
+uint16_t loopCnt;       // loopes
+uint16_t loopMsg = 60;     // print status after
 // zeigs:
 const byte zFlow = 1;   // general flow info
 const byte zTab = 2;    // slaves and tasks
@@ -208,17 +210,20 @@ bool checkFS() {
   // wait until target not busy, returns true if ready
   char str[20];
   byte cnt = 10;
-  delay(5); // slave needs time
+  //delay(5); // slave needs time
   while (cnt > 0) {
     cnt--;
     queryStat(0);
     if (recvBuf[0] == 'B') {
-      sprintf(str, "Check %2d %c %c", recvP, recvBuf[0], recvBuf[1]);
-      Serial.println(str);
-      delay(5);
+      if (cnt < 9) {
+        sprintf(str, "Check %2d %c %c", target, recvBuf[0], recvBuf[1]);
+        Serial.println(str);
+      }
+      delay(3);
     } else {
       if (recvBuf[0] == 'E') {
-        Serial.println(F("CheckFS Error"));
+        sprintf(str, "Check Error autorun stop %2d %c %c", target, recvBuf[0], recvBuf[1]);
+        Serial.println(str);
         autoRun = false;
       }
       return true;
@@ -236,7 +241,8 @@ void addprime() {
     num = chunk.chu64.za64[k];
     if (num == 0) break;
     checkFS();
-    sendeNummer('L', num);
+    sendeZahl('L', num);
+    primCnt++;
     if (zeig & zFlow) msg64(F("addPrime"), num);
   }
   target = targetS;
@@ -260,11 +266,27 @@ byte holeFld(char c) {
 }
 
 
+void uhrTim() {
+  //converts ms to hhmmss 60s/m 60m/h
+  uint32_t tim;
+  uint16_t hr, mi, se;
+  char str[100];
+  tim = millis() / 1000L;
+  hr = tim / 3600L;
+  tim = tim - hr * 3600;
+  mi = tim / 60;
+  se = tim - mi * 60;
+  sprintf(str, "%02u:%02u:%02u Primes %lu ", hr, mi, se, primCnt);
+  Serial.println(str);
+}
+
 void info() {
   msg64(F("topPrim: "), topPrim);
   msg64(F("myPrim : "), myPrim);
-  msgF(F("tarr:"), tarr);
   msgF(F("Target:"), target);
+  msgF(F("tick (ms):"), tick);
+  msgF(F("loopCnt:"), loopCnt);
+  msgF(F("loopMsg:"), loopMsg);
   msgF(F("fileMode:"), fileMode);
 }
 
@@ -342,7 +364,7 @@ void getSlaves() {
   } // for
 }
 
-// only user for fs, should use sendeZahl
+// only use for fs, should use sendeZahl as this is slooow
 void sendeNummer(char c, uint32_t i) {
   char str[15];
   sprintf(str, "%c%lu%c", c, i, c);
@@ -522,9 +544,12 @@ void assignTask() {
 }
 
 void doBegin(uint64_t num) {
-  // adds task and incs myPrim
+  // adds task and incs myPrim. continues if num 0
   byte res;
-  if (num != 0) myPrim = num;
+  if (num != 0) { //called first time
+    myPrim = num;
+    primCnt = 0;
+  }
   if (zeig & zFlow) msgZ (5, F("doBegin"), myPrim);
   if (!autoBegin) {
     msgF(F("Autobegin false"), autoBegin);
@@ -578,13 +603,13 @@ void setFreq(byte b) {
 
 void help () {
   Serial.println (F("Master commands:"));
-  Serial.println (F("Tasks  :  a(ssign), b(egin), g(o teachIn), k(ill), l(ist),  n(ew), N(ew)"));
+  Serial.println (F("Tasks  :  a(ssign), b(egin), g(o teachIn), k(ill), l(ist),  n(ew), N(ew), U(nter)"));
   Serial.println (F("Queries:  q(uery), e(elapsed), G(topPrim) "));
   Serial.println (F("Sends  :  c(ommand), h(new), f(ield) r(ead) s "));
   Serial.println (F("Slaves :  d(etect), A(nf), E(set freq), m M p P, O,o(verview), t(arget),, V(set twi adr)"));
   Serial.println (F("Debug  :  Z, z: zFlow 1, zNew 2, zTeach 4, zCheck 64, zDet 128 "));
   Serial.println (F("Info   :  i I j s u(tick)"));
-  Serial.println (F("Remote :  G(ener) R(ead) F(ield)  T(each) Y(openfile)  y(lognumber)"));
+  Serial.println (F("Remote :  G(ener) R(ead) F(ield)  T(each) W(init) Y(openfile)  y(lognumber)"));
 }
 
 void doCmd( char tmp) {
@@ -725,11 +750,16 @@ void doCmd( char tmp) {
       msgF(F("Target"), target);
       break;
     case 'T':   //
+      msg64(F("Teach-in"), inp);
       sendeZahl('T', inp);
       break;
     case 'u':   //
       tick = inp;
       msgF(F("Tick is"), tick);
+      break;
+    case 'U':   //
+      loopMsg = inp;
+      msgF(F("LoopMsg after"), loopMsg);
       break;
     case 'v':   //
       msgF(F("verify "), 0);
@@ -738,6 +768,10 @@ void doCmd( char tmp) {
     case 'V':   //
       msgF(F("TargetTWI Adr "), inp);
       sendeZahl('V', inp);
+      break;
+    case 'W':   //
+      msg64(F("Init Slave"), inp);
+      sendeZahl('Y', inp);
       break;
     case 'X':
     case 'x':   //
@@ -813,6 +847,11 @@ void loop() {
   currTim = millis();
   if (nexTim < currTim) {
     nexTim = currTim + tick;
+    loopCnt++;
+    if (loopCnt > loopMsg) {
+      loopCnt = 0;
+      uhrTim();
+    }
     if (autoRun) {
       checkSlaves();
       if (vt100Mode) {
