@@ -33,50 +33,68 @@ Master:  check state until !B
 The teach-in allows to fill n subsequent 
 
 
-Ziel war es, eine wirklich nutzlose Maschine zu bauen, in der Mikroprozessoren sich von der alltäglichen Langeweile erholen können.
+Ziel war es, eine wirklich nutzlose Maschine zu bauen, in der vorhandene Mikroprozessoren sich von der alltäglichen Langeweile erholen können.
 Welcher Prozessor könnte dazu besser geeignet sein als ein ATMega328p?
 Mit der brutalstmögliche Taktfrequenz von 16 MHz wird ein elaboriertes Rechenwerk angetrieben, eingebettet in die laufzeitoptimierte Arduino-Umgebung.  
 Für Experten sonnenklar, das ist erste Sahne. Jetzt arbeiten hier aber nicht ein oder gar zwei, nein 15 dieser leistungshungrigen Einheiten kämpfen gemeinsam.
 Woran? Alle Primzahlen kleiner 1 Billion (amerikanisch) für die Nachwelt auf einer SD-Karte zu verewigen. 
-Verbunden sind sie über den ultraschnellen TWI-Bus (TWBR 12!). Die Team-Mitglieder sind nicht alle gleich, wir haben je einen Dirigenten (Codename Majestro), einen Kommunikator (eingespart)
-und einen Chronisten. Die übrigen sind die Kalkulatoren, spezialisiert auf unterschiedliche Aufgaben (Typ 2, 3 und 4).
-Es können bis zu 127 Kämpfer eingesetzt werden, allerdings verbieten die aktuellen Preise für die Arduino Mini Pros den weiteren Ausbau.
+Verbunden sind sie über den ultraschnellen TWI-Bus (TWBR 12!). Die Team-Mitglieder sind nicht alle gleich, wir haben je einen Dirigenten (seine Freunde nennen ihn Majestro), 
+einen Kommunikator (z. Zt eingespart) und einen Chronisten. 
+Die übrigen sind die Kalkulatoren, spezialisiert auf unterschiedliche Aufgaben (Typ 2, 3 und 4).
+Es können bis zu 127 Mitstreiter eingesetzt werden, allerdings verbieten die aktuellen Preise für die Arduino Mini Pros den weiteren Ausbau.
 
 Alle können über serielle Schnittstelle von ihrer Arbeit berichten oder Anweisungen entgegennehmen.
 Das passiert mit dezenten 38400 baud, um den PC nicht zu überfordern. 
 
-Um Primes bis  1.000.000.000 (3B9ACA0) zu finden muss man sie nur durch alle 3347 Primes bis 31.623 teilen. Das sind 55 pages zu 128 bytes
-und passt locker in den enormen Flash-Speicher.
+Um Primes bis  1.000.000.000 (3B9ACA00 also 4 byte UL) zu finden muss man sie nur durch alle 3347 Primes bis 31.623 (2 byte U) teilen.
+Das sind 55 pages zu 128 bytes und passt locker in den enormen Flash-Speicher.
 Ablauf: jeder Kalkulator kennt die 55 Primzahlen <255. 
 Die Kalkulatoren vom Typ 2 bringen sich die 2-byte Primzahlen von 257 bis 31623 selbst bei und merken sie sich für die nächsten 100 Jahre (optiboot machts möglich).
 Das dauert vier Sekunden und ist nur nach einem allfälligen Software-Update erforderlich.
-Majestro schaut in seinem Notizbuch ("wo waren wir stehengeblieben?") und macht sich munter ans Werk.
-An jeden 2-er schickt er einen zu überprüfenden Bereich, der antwortet wieviele (für ihn) Prims darin gefunden wurden.
-Falls Prims gefunden wurden holt der Majestro diese ab und schickt sie an den Chronisten, der sie hoffentlich ordnungsgemäß verbucht.
+Majestro schaut in sein Notizbuch ("wer müsste da sein?" und "wo waren wir stehengeblieben?") und macht sich munter ans Werk.
+An jeden 2-er schickt er einen zu überprüfenden Bereich, der meldet nach einiger Zeit wieviele (für ihn) Primes darin gefunden wurden.
+Falls Primes gefunden wurden holt Majestro diese ab und schickt sie an den Chronisten, der sie hoffentlich ordnungsgemäß verbucht.
+
 
 Wie wird ein Mini-Pro zum Kalkulator?
 Soll als Slave #5 mit der TWI-Adresse 15 erscheinen.
 a) Falls erforderlich optiboot Bootlader brennen (nur) über ISP
 b) Serielle Schnittstelle anschliessen
-   prim.ino übertragen
+   prim.ino uploaden
 c) Terminal (z.B. TeraTerm):
 prim Apr 18 2021 04:11:34  	<- Programmname und Zeitpunkt des Compilierens 
 TWI from EProm 255			<- Im EPROM gespeicherte TWI Adresse
 Addr default 4				<- Nicht gesetzt, also 4 nehmen
 First Zero at  0			<- Kenne keine Primes
+
+Das Human User Interface strahlt den Charme der frühen 80er des letzten Jahrhunderts aus:
 d) Um die TWI Adresse zu ändern, z.b. in 15:
 15v
 prim Apr 18 2021 04:11:34
 TWI from EProm 15
 First Zero at  0
-e)da es Typ 2 werden soll, Primes lernen
+e) da es Typ 2 werden soll, Primes ab 257 für 55 pages lernen 
+257y
 55t
+writePage 1
+writePage 2
+...
+writePage 55
+Elapsed: 3947		<-ms zur Ausführung
 
-f)mit Master geht das übrigens auch:
+prim8: = 0x218
+flashSpace[0]  = 0x280
+flashSpace[max] = 0x1dff
+Pages: 55
+Flash space use: 7168
+
+f)Majestro kann das übrigens auch:
 4t		<- Sprich mit TWI 4
-15V		<- jetzt 15
-15t		<-
-55
+15V		<- Du bist jetzt 15
+15t		<- Sprich mit TWI 15
+55T
+
+
 
 schauen (d)
 Scanne bis  42
@@ -117,7 +135,8 @@ Target 12  Top prim 33.359
  2  W    0  2      33.353
  3  W    0  2      33.373
 ...
-Zeigt Taskliste, viele warten, ganz rechts der Bereich-Anfang. Ein Bereich umfasst also 20 (?)
+Zeigt Taskliste, viele warten, ganz rechts der Bereich-Anfang. Ein Bereich umfasst 10 ungerade Zahlen, hier 3 5 7 9 1 3 5 7 9 1
+wenn man 
 
 1Y		A chronisten: schreibe Primes in Logfile 1
 Check  3 B 1
@@ -157,7 +176,7 @@ o   Kalkulatoren bereit:
        epr  adr typ   S R  Tsk
    1    11   11   2   I c    1
    2    12   12   2   I c    2
-l Tasks abgearbeitet ('C'omplett), 2 warten noch
+l Tasks abgearbeitet ('C'ompletto), 2 warten noch
     St  Slv Srt S R
  1  C    1  2      33.333
  2  C    2  2      33.353
@@ -189,6 +208,7 @@ x		und anhalten.
 Das Ganze ist ja ziemlich lahm ähm Larghissimo. Das liegt daran, dass der Majestro sich nur jede Sekunde
  um das Orchester kümmert, das sieht man mit
  
+ 
 100T   	dann mal allegro ma non troppo
 1T		Prestissimo con brio
 
@@ -210,6 +230,7 @@ Check  3 O 0
 
 
 Im Netz gibt es eine List of prime numbers up to 1 000 000 000 000 (1000 billion) die zur Validierung herangezogen wurde:
+Besser https://primes.utm.edu/lists/small/millions/
 mySql anlegen
 	CREATE TABLE `primes` (`num` INT(10) UNSIGNED NOT NULL,	PRIMARY KEY (`num`) USING BTREE);
 als Textfile Anzahl 600 herunterladen
@@ -218,7 +239,7 @@ in notepad:
 	edit/EOL Conversion/Unix
 	\t ersetzen durch \n 
 	erste Zeile löschen (falls doppelt)
-	Speichern unter 
+	Speichern 
 in mysql:	
 	LOAD DATA INFILE 'c:/greed/prim257_.txt' IGNORE INTO TABLE primes;
 	
@@ -229,7 +250,7 @@ Auch die 3 Millionen (https://www.kaggle.com/radcliffe/3-million-sudoku-puzzles-
 
 Aber das System kann noch mehr: Für jede Zahl bis  werden blitzartig die Primfaktoren ermittelt.
  
-
+Grad ze laed´s
 Orte
 C:\Users\hh\AppData\Local\Arduino15\packages\MiniCore\hardware\avr\2.1
 
@@ -246,3 +267,33 @@ BOOTSZ	Size   Pages	Application			BootL				End App
 Arduino in github
 Versuche:
 Repo yaum anlegen in \dieser PC\Dokumente\Arduino
+alle unterschiedlichen ino-ordner hierher
+neuer Ordner libraries, die für dieses Projekt gebrauchten eigenen hierher, dazu drei neue (s.u.)
+yaum
+	.git
+	master
+		master.ino 	#include <la.h>
+	slave
+		slave.ino	#include <la.h>
+	libraries
+		la.h
+		la.cpp
+		.development			<- dummy-Datei erlaubt Schreiben in libraries folder
+		library.properties		<- allgemein Angaben zu der library
+		libraries.ino			<- dummy-Datei um .h, .cpp usw aus der IDE zu bearbeiten
+
+Herausforderung: la.h wird nicht gefunden, wird unter ../Arduino/libraries erwartet. Dann wirds aber mit git schwierig (oder?)
+Abhülfe:	Hard link namens yaumlib (oder so) von /Arduino/libraries zu ../yaum/libraries
+ launch the Command Prompt as Administrator
+ cd \Users\hh\Documents\Arduino\libraries
+ C:\Users\hh\Documents\Arduino\libraries>mklink /J yaumlib C:\Users\hh\Documents\Arduino\yaum\libraries
+ Verbindung erstellt für yaumlib <<===>> C:\Users\hh\Documents\Arduino\yaum\libraries
+ Arduino IDE (hier 1.8.13) starten
+ a) Compilieren geht
+ b) Sketch/Include Library/ unter contributed findet man den in der library.properties bei name angegebenen Eintrag.
+ c) libraries.ino öffnen, in den Reitern werden alle Dateien (hier la.h la.cpp) aufgeführt und können bearbeitet werden.
+ d) sie können sogar gespeichert werden
+ strike!
+ git und googledrive zwecks Sicherung geht sowieso
+ 
+	

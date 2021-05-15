@@ -18,13 +18,13 @@ byte recvP = 0;
 char recvBuf[32];
 byte zeigClu = 0;
 long primCnt;           // primes found
-uint16_t loopCnt;       // loopes
-uint16_t loopMsg = 60;     // print status after
+uint16_t loopCnt;       // loops
+uint16_t loopMsg = 60;  // print status after ticks
 // zeigs:
 const byte zFlow = 1;   // general flow info
 const byte zTab = 2;    // slaves and tasks
-const byte zTeach = 4;    //
-const byte zFact = 8;    //
+const byte zTeach = 4;  //
+const byte zFact = 8;   //
 const byte zCheck = 64;
 const byte zDet = 128;    //Detail
 
@@ -210,7 +210,6 @@ bool checkFS() {
   // wait until target not busy, returns true if ready
   char str[20];
   byte cnt = 10;
-  //delay(5); // slave needs time
   while (cnt > 0) {
     cnt--;
     queryStat(0);
@@ -848,7 +847,7 @@ void loop() {
   if (nexTim < currTim) {
     nexTim = currTim + tick;
     loopCnt++;
-    if (loopCnt > loopMsg) {
+    if (loopCnt => loopMsg) {
       loopCnt = 0;
       uhrTim();
     }

@@ -68,7 +68,7 @@ void get4Que() {
 byte receiveHandle() {
   // char   Auftrag                    Master (o.G.)
   // Cx    slCmd
-  // L     Lb8L       nummer to que        y
+  // L     Lb8L       nummer to que       y
   // O     OnnnO      open file nummer    Y
   // S     provide Status runS runR slCmd q
   // V     set twi Adr nummer             V

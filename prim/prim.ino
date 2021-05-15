@@ -448,7 +448,7 @@ void requestEvent() {
 
 
 uint64_t mulChu16() {
-  // smultiply how chunk for 2 byte values
+  // multiply how chunk for 2 byte values
   char str[50];
   uint64_t n=1;
   for (byte k = 0; k < 64; k++) {
