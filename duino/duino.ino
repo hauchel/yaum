@@ -1,22 +1,27 @@
 // slave for duinocoin via i2c
-#define VERSION 'a'
+// take the sha1 and uniqueID from revox Arduino_Code
+// compare to this ino if changed
+//
+#define VERSION 'b'
 #include <cluCom.h>
 #include "sha1.h"
-#include <ArduinoUniqueID.h>
+#include "uniqueID.h"
 byte backP = 0;
 char backBuf[32];
 byte recvP = 0;
 char recvBuf[32];
-char slCmd = ' '; // sent to slave by Cxx to be executed in doCmd
+volatile char slCmd = ' '; // sent to slave by Cxx to be executed in doCmd
 uint16_t slNum = 0; //      "   after some cmds
 uint32_t elaTim = 0; // back to master after T
-char runS   = 'I';  // State: Idle Busy Running Complete  I->B->I  I->R->C  C->I
-char runR   = VERSION;  // Result 0..9, here Initial version
+volatile char runS   = 'I';  // State: Idle Busy Complete  I->B->cmd->I  I->B->hashme->C  C->I 
+volatile char runR   = VERSION;  // Result 0..9, here Initial version
 byte zeigClu = 0; // debug output communication
 
 uint16_t  inp;
 bool inpAkt;                  // true if last input was a digit
 
+
+// compare to 
 char buffer[44];
 String IDstring = "??";
 //Received result (308)
@@ -159,7 +164,7 @@ void receiveEvent(int howMany) {
     provide16(ducos1tim);
     return;
   }
-  runS = 'B';
+  runS = 'B'; // busy until cmd processed
   slCmd = c;
 }
 
