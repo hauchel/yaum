@@ -1,0 +1,312 @@
+﻿
+# YAUM
+
+## Überblick
+ 
+Ziel war es, eine weitere wirklich nutzlose Maschine zu bauen, in der vorhandene Mikroprozessoren sich von der alltäglichen Langeweile erholen können. Welcher Prozessor könnte dazu besser geeignet sein als ein ATMega328p?
+Mit der brutalstmögliche Taktfrequenz von **16 MHz** wird ein elaboriertes Rechenwerk angetrieben, eingebettet in die laufzeitoptimierte **Arduino**-Umgebung.  
+Für Experten sonnenklar, das ist erste Sahne. Jetzt arbeiten hier aber nicht ein oder gar zwei, nein 15 dieser leistungshungrigen Einheiten kämpfen gemeinsam.
+Woran? Alle Primzahlen kleiner 1 Billion (amerikanisch) für die Nachwelt auf einer SD-Karte zu verewigen. 
+## todos
+ 
+Ziel war
+
+## Hardware
+Verwendet wurden Arduino Mini Pro, die über den ultraschnellen TWI-Bus (TWBR 12!) verbunden sind.  Nur vier Pins aller Boards müssen jeweils miteinander verbunden werden
+Bezeichnung	| Bedeutung|Farbe
+--- |---|---
+RAW		| Spannung 	|rot
+Gnd		| Masse|schwarz
+SCL	(A5)| TWI Clock|blau
+SDA (A4)|	TWI Data|grün
+
+And Raw liegt eine für das Board zulässige Spannung z.B. +5,8 V
+Einfachste Lösung war, den Bus im Lochraster-Streifen-Style auszuführen.
+
+### Umwidmung
+
+Wie wird ein Mini-Pro zum Kalkulator?
+Soll als Slave #5 mit der TWI-Adresse 15 erscheinen.
+a) Falls erforderlich optiboot Bootlader brennen (nur) über ISP
+b) Serielle Schnittstelle anschliessen
+   prim.ino uploaden
+
+Die Team-Mitglieder sind nicht alle gleich, wir haben je einen Dirigenten (seine Freunde nennen ihn Majestro),  einen Kommunikator (z. Zt eingespart) und einen Chronisten. 
+Die übrigen sind die Kalkulatoren, spezialisiert auf unterschiedliche Aufgaben (Typ 2, 3 und 4).
+Es können bis zu 127 Mitstreiter eingesetzt werden, allerdings verbieten die aktuellen Preise für die Arduino Mini Pros den weiteren Ausbau.
+
+
+Alle können über serielle Schnittstelle mit einem PC von ihrer Arbeit berichten oder Anweisungen entgegennehmen. Das passiert mit dezenten 38400 baud, um den PC nicht zu überfordern. 
+
+Um Primes bis  1.000.000.000 (3B9ACA00 also 4 byte UL) zu finden muss man sie nur durch alle 3347 Primes bis 31.623 (2 byte U) teilen. Das sind 55 pages zu 128 bytes und passt locker in den enormen Flash-Speicher.
+
+Ablauf: jeder Kalkulator kennt die 55 Primzahlen <255. 
+Die Kalkulatoren vom Typ 2 bringen sich die 2-byte Primzahlen von 257 bis 31623 selbst bei und merken sie sich für die nächsten 100 Jahre (optiboot machts möglich).
+Das dauert vier Sekunden und ist nur nach einem allfälligen Software-Update erforderlich.
+
+Majestro schaut in sein Notizbuch ("wer müsste da sein?" und "wo waren wir stehengeblieben?") und macht sich munter ans Werk.
+An jeden 2-er schickt er einen zu überprüfenden Bereich, der meldet nach einiger Zeit wieviele (für ihn) Primes darin gefunden wurden.
+Falls Primes gefunden wurden holt Majestro diese ab und schickt sie an den Chronisten, der sie hoffentlich ordnungsgemäß verbucht.
+
+
+Wie wird ein Mini-Pro zum Kalkulator?
+Soll als Slave #5 mit der TWI-Adresse 15 erscheinen.
+a) Falls erforderlich optiboot Bootlader brennen (nur) über ISP
+b) Serielle Schnittstelle anschliessen
+   prim.ino uploaden
+c) Terminal (z.B. TeraTerm):
+c) Mit Terminal (z.B. TeraTerm) verbinden
+    
+    prim Apr 18 2021 04:11:34  	-> Programmname und Zeitpunkt des Compilierens* 
+    TWI from EProm 255			-> Im EPROM gespeicherte TWI Adresse
+    Addr default 4				-> Nicht gesetzt, also 4 nehmen
+    First Zero at  0			-> Kenne keine Primes
+
+Das Human User Interface strahlt den Charme der frühen 80er des letzten Jahrhunderts aus, es wird eine UPN verwendet; eventuell Ziffern dann Bitte um Ausführung. Bitten sind immer nur ein Buchstabe, natürlich sind Groß/Kleinschreibung wichtig. Befehl wird sofort ausgeführt, keine Return erforderlich.
+Um die TWI Adresse zu ändern, lautet die Bitte 'v' :  
+
+    15v								<- v: Bitte die vorige Zahl als TWI
+    prim Apr 18 2021 04:11:34		-> wird gemerkt und neu gestartet	
+    TWI from EProm 15
+    First Zero at  0
+
+Da es Typ 2 werden soll, Primes ab 257 für 55 pages lernen . 
+
+    257y					<- y: Anfangswert (hier 257)
+    55t						<- t: Teach-in (lerne) 55 Pages
+    writePage 1				-> nur zur Info
+    writePage 2
+    ...
+    writePage 55
+    Elapsed: 3947			-> ms zur Ausführung
+
+Wichtigste Informationen abfragen: 
+
+    I					 	<- 
+    prim8: = 0x218
+    flashSpace[0]  = 0x280
+    flashSpace[max] = 0x1dff
+    Pages: 55
+    Flash space use: 7168
+
+Majestro kann das übrigens auch:
+
+    4t		<- t: target (Sprich mit) TWI Adresse 4
+    15V		<- V: Du bist jetzt 15
+    15t		<- t: Sprich mit TWI 15
+    55T		<- T: 
+
+Interessanterweise haben gleiche Befehle äh Bitten bei Master äh Majestro und Slave äh Kalkulator unterschiedliche Bedeutung, das hält den menschlichen Zuschauer geistig fit und macht die Sache spannend.
+Majestro listet die angeschlossenen TWI-Devices
+
+    d		<- d: detect
+    Scanne bis  42
+    I2C device found at address 0x0B
+    I2C device found at address 0x0C
+    I2C device found at address 0x0D
+    I2C device found at address 0x0F   -> 15 
+    I2C device found at address 0x2A   -> Fileserver immer bei 42
+
+Majestro  schauen (o)
+
+          epr  adr typ    S R  Tsk
+     > 1    11   11   2   I c    0
+       2    12   12   2   I c    0
+       3    13   13   2   I c    0
+       4     0    0   0          0
+       5     4    4   0   I c    0
+
+g) aufnehmen 
+
+    5p			<- Nummer 5
+    15M			<- TWI 15 ins Eprom
+    2P			<- Typ 2  ins Eprom
+     > 5    15   15   2   I c    0
+
+
+
+Typischer Ablauf nach Einschalten, Terminal mit Majestro:
+
+    O 		Zeige Anwesende:
+           epr  adr typ   S R  Tsk
+     > 1    11   11   2   I c    0
+       2    12   12   2   I c    0
+       ...
+    j 		Top Prim der Slaves:
+    Target 11  Top prim 33.359
+    Target 12  Top prim 33.359
+
+    33333b	Wir fangen mit 33333 an
+       St  Slv Srt S R
+     1  W    0  2      33.333
+     2  W    0  2      33.353
+     3  W    0  2      33.373
+    ...
+
+Zeigt Taskliste, viele warten, ganz rechts der Bereich-Anfang. Ein Bereich umfasst 10 Zahlen im Abstand 2, hier ...3 5 7 9 1 3 5 7 9 1
+Übrigens: Wenn man gerade Zahlen verwendet machen alle (grad ze laed´s) das was verlangt wird und finden in dem Bereich keine Primzahlen sondern die Teilbarkeit durch 2.
+
+1Y		A chronisten: schreibe Primes in Logfile 1
+Check  3 B 1
+Check  3 O 1
+Der erste Check mit 'B' zeigt dass der Chronist 'B'eschäftigt ist und zur Zeit nicht gestört werden möchte
+der zweite Check mit 'O' zeigt dass alles in 'O'rdnung ist (Checks mit O werden i.d.R nicht gezeigt, nur B und E)
+
+den ersten Durchgang manuell:
+a		assign Tasks to free Slaves Jetzt müssten sie kurz blitzen
+l		Taskliste:
+   St  Slv Srt 
+ 1  R    1  2      33.333
+ 2  R    2  2      33.353
+Task 1 'R'ennt auf Kalkulator 1 mit 3333.
+
+o 	Was machen die Slaves?
+       epr  adr typ   S R  Tsk 
+   1    11   11   2   C 3    1
+   2    12   12   2   C 2    2
+   3    13   13   2   C 2    3
+alle sind 'C'omplete Slave 1 hat 3 Primes gefunden.
+
+Z	Zuhören wie das Team sich unterhält (nochmal Z schaltet wieder ab)
+v	verbuchen wir
+?‚C‚E‚<Recv 32			<- Kalkulator an Majestro, 32 Zeichen Fachsprache, unverständlich, sind die gefundenen Primes
+>O1 <qu Resp anz= 3		<- Frage Chronist, Antwort jau
+Check  3 O 1			<- Zuhörern Bescheid 
+addPrime 33.343			<- dann mach
+addPrime 33.347
+addPrime 33.359
+...
+…‚“‚K€e€w€€<Recv 32	<- nächster Kalkulator, wer soll das verstehen?
+addPrime 33.413			<-	
+addPrime 33.427
+Z   war ja ganz nett, aber auf die Dauer laaaangweilig
+o   Kalkulatoren bereit:
+       epr  adr typ   S R  Tsk
+   1    11   11   2   I c    1
+   2    12   12   2   I c    2
+l Tasks abgearbeitet ('C'ompletto), 2 warten noch
+    St  Slv Srt S R
+ 1  C    1  2      33.333
+ 2  C    2  2      33.353
+ 9  W    0  2      33.493
+10  W    0  2      33.513
+0b	Weiter
+a
+assign 0
+v
+verify  0
+addPrime 33.521
+addPrime 33.529
+
+etwas mühsam 
+X	
+
+X		dann man los
+...
+Check  3 O 1
+addPrime 33.493
+Check  3 O 1
+addPrime 33.503
+Check  3 O 1
+addPrime 33.521
+Check  3 O 1
+
+x		und anhalten.
+
+Das Ganze ist ja ziemlich lahm ähm Larghissimo. Das liegt daran, dass  Majestro sich nur jede Sekunde  um das Orchester kümmert, das sieht man mit
+ 
+ 
+100T   	dann mal allegro ma non troppo
+1T		Prestissimo con brio
+
+
+Vor Entnehmen der SD-Card unbedingt Datei schliessen vom Master aus indem man eine andere öffnet
+0Y
+0Check  3 B 1
+Check  3 B 1
+Check  3 O 0
+ 
+Übrigens: Die Zahlen in der Datei sind nicht in Reihenfolge, weil die Feststellung der Prim-heit unterschiedlich lange dauert 
+41771
+41863
+41579
+41879
+41887
+41893
+
+
+
+Im Netz gibt es eine List of prime numbers up to 1 000 000 000 000 (1000 billion) die zur Validierung herangezogen wurde:
+Besser https://primes.utm.edu/lists/small/millions/
+mySql anlegen
+	CREATE TABLE `primes` (`num` INT(10) UNSIGNED NOT NULL,	PRIMARY KEY (`num`) USING BTREE);
+als Textfile Anzahl 600 herunterladen
+in notepad:
+	Speichern unter 
+	edit/EOL Conversion/Unix
+	\t ersetzen durch \n 
+	erste Zeile löschen (falls doppelt)
+	Speichern 
+in mysql:	
+	LOAD DATA INFILE 'c:/greed/prim257_.txt' IGNORE INTO TABLE primes;
+	
+
+Kenner werden hier sofort an die 1 Million Sudoko games (https://www.kaggle.com/bryanpark/sudoku) denken, an denen diese Konfiguration bereits gearbeitet hat.
+Auch die 3 Millionen (https://www.kaggle.com/radcliffe/3-million-sudoku-puzzles-with-ratings) oder die 9 Millionen (https://www.kaggle.com/rohanrao/sudoku) sind machbar,
+	
+
+Aber das System kann noch mehr: Für jede Zahl bis  werden blitzartig die Primfaktoren ermittelt.
+ 
+
+Orte
+C:\Users\hh\AppData\Local\Arduino15\packages\MiniCore\hardware\avr\2.1
+
+
+BOOTSZ	Size   Pages	Application			BootL				End App
+1	1	256 words	4	0x0000 - 0x3EFF		0x3F00 - 0x3FFF		0x3EFF 		0x3F00
+1	0	512 words	8	0x0000 - 0x3DFF		0x3E00 - 0x3FFF		0x3DFF		0x3E00
+0	1  1024 words  16	0x0000 - 0x3BFF		0x3C00 - 0x3FFF		0x3BFF		0x3C00
+0	0  2048 words  32	0x0000 - 0x37FF		0x3800 - 0x3FFF		0x37FF		0x3800
+(RWW)   224 			0x0000 - 0x37FF
+(NRWW)   32				0x3800 - 0x3FFF
+
+
+Arduino in github
+Versuche:
+Repo yaum anlegen in \dieser PC\Dokumente\Arduino
+alle unterschiedlichen ino-ordner hierher
+neuer Ordner libraries, die für dieses Projekt gebrauchten eigenen hierher, dazu drei neue (s.u.)
+yaum
+	.git
+	master
+		master.ino 	#include <la.h>
+	slave
+		slave.ino	#include <la.h>
+	libraries
+		la.h
+		la.cpp
+		.development			<- dummy-Datei erlaubt Schreiben in libraries folder
+		library.properties		<- allgemein Angaben zu der library
+		libraries.ino			<- dummy-Datei um .h, .cpp usw aus der IDE zu bearbeiten
+
+Herausforderung: la.h wird nicht gefunden, wird unter ../Arduino/libraries erwartet. Dann wirds aber mit git schwierig (oder?)
+Abhülfe:	Hard link namens yaumlib (oder so) von /Arduino/libraries zu ../yaum/libraries
+ launch the Command Prompt as Administrator
+ cd \Users\hh\Documents\Arduino\libraries
+ C:\Users\hh\Documents\Arduino\libraries>mklink /J yaumlib C:\Users\hh\Documents\Arduino\yaum\libraries
+ Verbindung erstellt für yaumlib <<===>> C:\Users\hh\Documents\Arduino\yaum\libraries
+ Arduino IDE (hier 1.8.13) starten
+ a) Compilieren geht
+ b) Sketch/Include Library/ unter contributed findet man den in der library.properties bei name angegebenen Eintrag.
+ c) libraries.ino öffnen, in den Reitern werden alle Dateien (hier la.h la.cpp) aufgeführt und können bearbeitet werden.
+ d) sie können sogar gespeichert werden
+ strike!
+ git und googledrive zwecks Sicherung geht sowieso
+ 
+	
+
+> Written with [StackEdit](https://stackedit.io/).
+
+
+
+
