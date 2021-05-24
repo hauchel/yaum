@@ -14,20 +14,47 @@
 // along with cryptosuite2.  If not, see <http://www.gnu.org/licenses/>. //
 //                                                                       //
 
-#ifndef SHA1_SHA1_H_
-#define SHA1_SHA1_H_
+#ifndef SHA1_TYPES_H_
+#define SHA1_TYPES_H_
 
 #include "default.h"
-#include "types.h"
-#include "hash.h"
+#include <inttypes.h>
 #include <stddef.h>
-//#include <unistd.h>
+#include "constants.h"
 
-#ifndef ssize_t
-#define ssize_t long int
+
+typedef union 
+{
+	uint8_t bytes[SHA1_HASH_LEN];
+	uint32_t words[SHA1_HASH_LEN / 4];
+	
+} sha1_state_t;
+
+typedef union
+{
+	uint8_t bytes[SHA1_BLOCK_LEN];
+	uint32_t words[SHA1_BLOCK_LEN / 4];
+
+} sha1_block_t;
+
+typedef struct __attribute__((__packed__)) sha1_hasher_s
+{
+	sha1_state_t state;
+	sha1_block_t buffer;
+
+	uint8_t block_offset;
+	uint64_t total_bytes;
+	uint8_t _lock;
+#ifdef SHA1_ENABLE_HMAC
+	uint8_t hmac_key_buffer[SHA1_BLOCK_LEN];
+	uint8_t hmac_inner_hash[SHA1_HASH_LEN];
 #endif
+} * sha1_hasher_t;
 
-ssize_t sha1_hasher_write(sha1_hasher_t hasher, const void * buf, size_t count); 
+sha1_hasher_t sha1_hasher_new(void);
+void sha1_hasher_del(sha1_hasher_t hasher);
+void sha1_hasher_init(sha1_hasher_t hasher);
 
-#endif  
+
+#endif
 

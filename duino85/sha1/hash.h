@@ -14,20 +14,43 @@
 // along with cryptosuite2.  If not, see <http://www.gnu.org/licenses/>. //
 //                                                                       //
 
-#ifndef SHA1_SHA1_H_
-#define SHA1_SHA1_H_
+#ifndef SHA1_HASH_H_
+#define SHA1_HASH_H_
+
 
 #include "default.h"
+#include "constants.h"
 #include "types.h"
-#include "hash.h"
-#include <stddef.h>
-//#include <unistd.h>
+#include "basic.h"
 
-#ifndef ssize_t
-#define ssize_t long int
+void sha1_hash_block(sha1_hasher_t hasher);
+
+void sha1_hasher_add_byte(sha1_hasher_t hasher, uint8_t byte);
+
+/**
+ * NOTE: once the block has been pad'ed the hasher will
+ * produce nonsense data. Therefore putc will return EOF
+ * once the hasher has been pad'ed (this happens, when 
+ * sha1_hasher_gethash or sha1_hasher_gethmac are invoced).
+ * */
+uint8_t sha1_hasher_putc(sha1_hasher_t hasher, uint8_t byte);
+
+void sha1_hasher_pad(sha1_hasher_t hasher);
+
+/**
+ * NOTE: this will NOT return a copy of the data but
+ * a REFERENCE! One MUST NOT free the result.
+ *
+ * Also this modifies the state of the hasher. The
+ * hasher has an internal lock ensuring that writing
+ * to the hasher fails after this operation.
+ * */
+uint8_t * sha1_hasher_gethash(sha1_hasher_t hasher);
+
+#ifdef SHA1_ENABLE_HMAC
+void sha1_hasher_init_hmac(sha1_hasher_t hasher, const uint8_t * key, size_t key_len);
+uint8_t * sha1_hasher_gethmac(sha1_hasher_t hasher);
 #endif
 
-ssize_t sha1_hasher_write(sha1_hasher_t hasher, const void * buf, size_t count); 
-
-#endif  
+#endif
 
