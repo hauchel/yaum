@@ -14,20 +14,18 @@
 // along with cryptosuite2.  If not, see <http://www.gnu.org/licenses/>. //
 //                                                                       //
 
-#ifndef SHA1_SHA1_H_
-#define SHA1_SHA1_H_
+// This file is the module config header
+// when the arduino interface is NOT used.
+//
+// If you want to use the library with Arduino,
+// edit sha/config.h. If you use a proper build system, 
+// use this config file for sha1 and sha/sha256/default.h
+// for sha256.
+#ifndef SHA1_DEFAULT_H_
+#define SHA1_DEFAULT_H_
 
-#include "default.h"
-#include "types.h"
-#include "hash.h"
-#include <stddef.h>
-//#include <unistd.h>
+#define SHA1_ENABLE_HMAC
 
-#ifndef ssize_t
-#define ssize_t long int
+
 #endif
-
-ssize_t sha1_hasher_write(sha1_hasher_t hasher, const void * buf, size_t count); 
-
-#endif  
 

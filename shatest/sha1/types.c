@@ -14,20 +14,43 @@
 // along with cryptosuite2.  If not, see <http://www.gnu.org/licenses/>. //
 //                                                                       //
 
-#ifndef SHA1_SHA1_H_
-#define SHA1_SHA1_H_
-
-#include "default.h"
 #include "types.h"
-#include "hash.h"
-#include <stddef.h>
-//#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include "constants.h"
 
-#ifndef ssize_t
-#define ssize_t long int
+sha1_hasher_t sha1_hasher_new(void)
+{
+	sha1_hasher_t hasher = (sha1_hasher_t) malloc(sizeof(struct sha1_hasher_s));
+	if(!hasher)
+	{
+		return NULL;
+	}
+	sha1_hasher_init(hasher);
+	return hasher;
+}
+
+void sha1_hasher_init(sha1_hasher_t hasher)
+{
+#ifdef __AVR__
+	uint8_t i;
+	for(i = 0; i < SHA1_HASH_LEN / 4; i++)
+	{
+		hasher->state.words[i] = pgm_read_dword(sha1_init_state + i);
+	}
+#else
+	memcpy(hasher->state.words, sha1_init_state, SHA1_HASH_LEN);
 #endif
+	hasher->block_offset = 0;
+	hasher->total_bytes = 0;
+	hasher->_lock = 0;
 
-ssize_t sha1_hasher_write(sha1_hasher_t hasher, const void * buf, size_t count); 
+}
 
-#endif  
+
+void sha1_hasher_del(sha1_hasher_t hasher)
+{
+	free(hasher);
+}
+
 

@@ -14,20 +14,25 @@
 // along with cryptosuite2.  If not, see <http://www.gnu.org/licenses/>. //
 //                                                                       //
 
-#ifndef SHA1_SHA1_H_
-#define SHA1_SHA1_H_
+#include "constants.h"
 
-#include "default.h"
-#include "types.h"
-#include "hash.h"
-#include <stddef.h>
-//#include <unistd.h>
-
-#ifndef ssize_t
-#define ssize_t long int
+#ifndef __AVR__
+const uint32_t sha1_init_state[SHA1_HASH_LEN / 4] =
+#else
+const uint32_t sha1_init_state[SHA1_HASH_LEN / 4] PROGMEM =
 #endif
+{
+	0x67452301, 0xefcdab89, 0x98badcfe,
+	0x10325476, 0xc3d2e1f0
+};
 
-ssize_t sha1_hasher_write(sha1_hasher_t hasher, const void * buf, size_t count); 
+#ifndef __AVR__
+const uint32_t sha1_constants[4] = 
+#else
+const uint32_t sha1_constants[4] PROGMEM =
+#endif
+{
+	0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6
+};
 
-#endif  
 

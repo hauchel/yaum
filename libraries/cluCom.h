@@ -11,7 +11,7 @@ byte ledCnt = 2;
 
 unsigned long currTim, startTim, endTim;
 unsigned long nexTim = 0;
-unsigned long tick = 500;     // 
+unsigned long tick = 500;     //
 
 byte myAdr = 4;
 bool slaAkt = true;  // if true show only active slaves
@@ -92,8 +92,14 @@ void getEprom() {
 
 void setEprom() {
   byte adr = 0;
+  byte t;
   for (byte k = 0; k < ANZEPR; k++) {
-    EEPROM.update(adr++, eeData.byt[k]);
+    //    EEPROM.update(adr++, eeData.byt[k]); does not work for lgt8
+    t = EEPROM.read(adr);
+    if (t != eeData.byt[k]) {
+      EEPROM.write(adr, eeData.byt[k]);
+    }
+    adr++;
   }
 }
 

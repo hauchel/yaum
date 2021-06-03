@@ -23,6 +23,12 @@
 #ifndef SHA_CONFIG_H_
 #define SHA_CONFIG_H_
 
-// No changes yet.
+
+//changes as recommended.
+#define SHA256_DISABLED
+#undef  SHA256_ENABLE_HMAC
+#undef  SHA1_ENABLE_HMAC
+#define SHA256_DISABLE_WRAPPER
+
 
 #endif

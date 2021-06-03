@@ -14,20 +14,11 @@
 // along with cryptosuite2.  If not, see <http://www.gnu.org/licenses/>. //
 //                                                                       //
 
-#ifndef SHA1_SHA1_H_
-#define SHA1_SHA1_H_
+#include "config.h"
 
-#include "default.h"
-#include "types.h"
-#include "hash.h"
-#include <stddef.h>
-//#include <unistd.h>
-
-#ifndef ssize_t
-#define ssize_t long int
+#ifndef SHA1_DISABLED
+#include "sha1/constants.c"
+#include "sha1/hash.c"
+#include "sha1/types.c"
+#include "sha1/sha1.c"
 #endif
-
-ssize_t sha1_hasher_write(sha1_hasher_t hasher, const void * buf, size_t count); 
-
-#endif  
-

@@ -2,6 +2,7 @@
 // take the sha1 and uniqueID from revox
 // compare to this ino if changed
 //
+#define USE_LGT_EEPROM_API
 #define VERSION 'c'
 #include <cluCom.h>
 #include "sha1.h"
@@ -193,7 +194,7 @@ uint8_t slNum() {
 
 void receiveEvent(int howMany) {
   ledOn(1);
-  if (howMany == 0) return;
+  //if (howMany == 0) return;
   char c;
   c = Wire.read();
   if (c == 'S') {  //status return immediately
@@ -313,10 +314,10 @@ void doCmd( char ch) {
       zeigClu = !zeigClu;
       msgF(F("ZeigClu"), zeigClu);
       break;
-    default:
+   default:
       msgF(F(" ?? "), ch);
   } // case
-}
+} 
 
 void setup() {
   const char ich[] = "duino " __DATE__  " "  __TIME__;
