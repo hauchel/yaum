@@ -1,25 +1,26 @@
 // ATtiny85 slave for duinocoin via i2c based on revox Arduino_Code
-// take the sha1 from revox
+// modified to avoid strings
+// take the sha1 from revox, modify config.h to save RAM
 //
 #define VERSION 'a'
 #include "sha1.h"
 #include <Wire.h>
 #include <EEPROM.h>
 
+char backBuf[16];                // I2C size is 16
 byte backP = 0;
-char backBuf[16];
-byte recvP = 0;
 char recvBuf[16];
-char lastblock[45];
+byte recvP = 0;
+char lastblock[42];               //40+\0
 byte lastblockP = 0;
-char newblock[45];
+char newblock[42];
 byte newblockP = 0;
-volatile char slCmd = ' '; // sent to slave by Cxx to be executed in doCmd
-volatile char runS   = 'I';  // State: Idle Busy Complete  I->B->cmd->I  I->B->hashme->C  C->I
-volatile char runR   = VERSION;  // Result 0..9, here Initial version
-const byte ledPin = 3;  // LED vs GND
-const byte dbgPin = 1;  // for LA do mot use if on bus!
-byte myAdr;
+volatile char slCmd = ' ';        // sent to slave by Cxx to be executed in doCmd
+volatile char runS   = 'I';       // State: Idle Busy Complete  I->B->cmd->I  I->B->hashme->C  C->I
+volatile char runR   = VERSION;   // Result 0..9, here Initial version
+const byte ledPin = 3;            // LED vs GND
+const byte dbgPin = 4;            // for LA
+byte myAdr;                       //
 
 unsigned long currTim;
 unsigned long nexTim = 0;
@@ -29,6 +30,7 @@ byte ledCnt = 0;
 //check:
 
 uint16_t ducos1result = 0;
+uint16_t ducos1tim = 0;           // in ms
 uint8_t difficulty = 10;
 
 
@@ -42,16 +44,12 @@ uint16_t calcsha1(const char *lastblock, const char *newblock, uint16_t difficul
     Sha1.print(lastblock);
     Sha1.print(ducos1res);
     uint8_t * hash_bytes = Sha1.result();
-    if (memcmp(hash_bytes, jj, SHA1_HASH_LEN * sizeof(char)) == 0)   {
+    if (memcmp(hash_bytes, jj, SHA1_HASH_LEN) == 0)   {
       return ducos1res;
     }
   }
   return 0;
 }
-
-
-
-
 
 uint8_t getEprom85() {
   return EEPROM.read(0);
@@ -62,9 +60,9 @@ void setEprom85(byte val) {
 }
 
 void hashme() {
-  // Call DUCO-S1A hasher
-  ducos1result = calcsha1(lastblock,newblock, difficulty);
-  // Calculate elapsed time
+  unsigned long startTime = millis();
+  ducos1result = calcsha1(lastblock, newblock, difficulty);
+  ducos1tim = uint16_t( millis() - startTime);
   runS = 'C';
 }
 
@@ -95,7 +93,7 @@ void provideStr(const char str[]) {
 }
 
 void copyBuf() {
-  // puts in to back,
+  // puts recv to back, test only
   backP = 16;
   for (byte k = 0; k < 16; k++) {
     backBuf[k] =  recvBuf[k];
@@ -128,13 +126,12 @@ uint8_t slNum() {
 // Q
 // R   *  provide Result
 // S   *  provide Status                    runS runR slCmd
-// T      teach in              Tb8
 // V      set twi Adr nummer    Vb8         -
 
 void receiveEvent(int howMany) {
-  dbgOn();
   ledOn(1);
   if (howMany == 0) return;
+  dbgOn();
   char c;
   c = Wire.read();
   if (c == 'S') {  //status return immediately
@@ -151,14 +148,14 @@ void receiveEvent(int howMany) {
     return;
   }
   if (c == 'E') {  //elapsed return immediately
-    //provide16(ducos1tim);
+    provide16(ducos1tim);
     dbgOff();
     return;
   }
   runS = 'B'; // busy until cmd processed
   slCmd = c;
   recvP = 1;
-  recvBuf[0] = slCmd;
+  recvBuf[0] = c;
   while (Wire.available())   { //fetch, has to be done here for 85!!
     c = Wire.read();
     recvBuf[recvP++] = c;
@@ -198,10 +195,15 @@ void doCmd( char ch) {
       }
       break;
     case 'M':
+      for (byte k = 1; k < recvP; k++) {
+        lastblock[lastblockP++] = recvBuf[k];
+      }
+      break;
     case 'N':
       for (byte k = 1; k < recvP; k++) {
         lastblock[lastblockP++] = recvBuf[k];
       }
+      lastblock[lastblockP] = 0;
       break;
     case 'O':   //
       newblockP = 0;
@@ -218,6 +220,7 @@ void doCmd( char ch) {
       for (byte k = 1; k < recvP; k++) {
         newblock[newblockP++] = recvBuf[k];
       }
+      newblock[newblockP] = 0;
       hashme();
       break;
     case 'H':   //
@@ -236,7 +239,7 @@ void setup() {
   pinMode(dbgPin, OUTPUT);
   myAdr = getEprom85();
   if ((myAdr < 10) || (myAdr > 100)) { // scan only from 0x08 to 0x77
-    myAdr = 42;
+    myAdr = 50;
   }
   Wire.begin(myAdr);
   Wire.onReceive(receiveEvent);

@@ -83,8 +83,8 @@ void calcme() {
 void testdata(uint8_t n) {
   difficulty = 6;
   if (n == 1) {
-    lastblockhash = "b1d5daa0118596c898ab96a63e58e1da0ad5084a";
-    newblockhash = "ded13127e18541f6dea390947807161d230e422e";
+    lastblockhash = "ccd8d1e580ba517b85c1fa6e2295ec93c0ee0fbd";
+    newblockhash =  "29f548079853d5e9514863b370ff75338a7ab919";
     testres = 342;
     return;
   }
