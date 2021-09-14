@@ -24,7 +24,7 @@ const static unsigned char PROGMEM prim8 [ANZPR8] = // one byte primes
   73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173,
   179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 0
 };
-//                                                                        3: 257 exp 4                                 8: max 4 byte  9: max 8 byte
+//                                                                        3: 257 exp 4      4:     5:            7:     8: max 4 byte  9: max 8 byte
 const uint64_t primTst64[10] = {0, 30781UL * 30803UL, 33359UL * 33359UL, 1121154893057ULL, 61967, 57667, 56003, 65535, 4294967295UL, 18446744073709551615ULL}; // recall using p
 
 uint64_t  inp;
@@ -474,7 +474,7 @@ void factorize(uint64_t num) {
   }
   res = !0;
   while (res != 0) {
-    res = checkP8_64(num);
+    res = checkP16_64(num);
     if (res != 0) {
       if (zeig & zFact) msgF(F("Fac 16 = "), res);
       chunk.chu16.za16[pp++] = res;

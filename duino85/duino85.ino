@@ -186,7 +186,6 @@ void doCmd( char ch) {
     case 'D':   //
       difficulty = slNum();
       EEPROM.update(1, byte(difficulty)); //debug
-      EEPROM.write(2, difficulty);
       break;
     case 'L':   //
       lastblockP = 0;
