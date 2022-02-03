@@ -753,7 +753,7 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   ledOn(1);
   getEprom();
-  for (byte k = 1; k <ANZSLA; k++) {
+  for (byte k = 1; k < ANZSLA; k++) {
     if (eeData.info.slav[k] < 127) {
       slaInfo[k].slaAdr = eeData.info.slav[k];
     }
