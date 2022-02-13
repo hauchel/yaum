@@ -1,0 +1,9 @@
+// little thesau
+const byte anzBeis = 5;
+const static char PROGMEM beis [anzBeis][126] = {
+  "aalenabbauabendabgasabortabrufabteiabzugachimachseackeradelnadleradolfaehreaffigaffinafteragentagileahlenahmenahnenahninaktie",
+  "eigeneileneiligeimereineneinereinigeiseneisigeiteleitereitleekelnekligekzemelendeliteelmaremsigendenengelengenenkelenormenzym",
+  "appelaprilarchearealarenaarierarmeearminarndtarrakarschartenartigascheasiatasienasselathenatlasatmenaurumautoraxiombabelbacke",
+  "badenbahrebaierbakerbambibanalbandebardebarkebaronbarrebasarbaselbasisbauchbauenbauerbayerbazarbeatebebenbeerebeetebeidebeize",
+  "belagbelegbennoberndbertiberufbesenbetenbeterbetonbeugebeulebeutebezugbibelbiberbiegebienebiestbindebinombinsebirkebirnebison",
+};

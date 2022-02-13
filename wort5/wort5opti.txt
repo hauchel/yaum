@@ -1,36 +1,51 @@
 // solves wordle puzzle using known words
-// Terminal setup: transmit CR for newline, local echo off, 38400
-//TODO  Buchstaben nicht an bestimmter Stelle
+// Terminal setup: transmit CR for newline, local echo off, vt24
+#include "optiboot.h"
+// flash
+#define NUMBER_OF_PAGES 1   // number of pages of 128 , one page contains 25 worte then terminated by \0xx
+// allocate flash to write to, must be initialized, one more than used as 0 for EOS
+const uint8_t flashSpace[SPM_PAGESIZE * (NUMBER_OF_PAGES + 1)] __attribute__ (( aligned(SPM_PAGESIZE) )) PROGMEM = {"\x0"}; //
 
-#include "thesau94.h"
+#include "thesau58.h"
 
 // 128 bytes are
-byte ramBuffer[128];
+struct  wort_s {
+  char eintr [25][5];
+  uint8_t wnull;
+  uint8_t wb;
+  uint8_t wc;
+} ;
+
+typedef union {
+  wort_s worte;
+  byte ramBuffer[SPM_PAGESIZE];
+} chunk_t ;
+chunk_t chunk;
+
 char buchs[26]; // +,-,' '
 char ist[6];
 char muss[6];
 char exac[6];
 byte exacP;
 
+enum stateT {norm, plus, minus, leer, exakt};
+stateT state;
 
-enum instat_t {norm, plus, minus, leer, exakt};
-instat_t instat;
+
 uint16_t inp;
 bool inpAkt = false;
 unsigned long currMs, prevMs = 0;
-bool verbo = false;
-bool autom = false; // search after cr
-
+bool verbo = true;
+bool plumi = true;
 
 
 void prnt(PGM_P p) {
-  // flash to serial until \0
   while (1) {
     char c = pgm_read_byte(p++);
     if (c == 0) break;
     Serial.write(c);
   }
-  Serial.write(' ');
+  Serial.write(" ");
 }
 
 void msgF(const __FlashStringHelper *ifsh, uint16_t n) {
@@ -40,13 +55,31 @@ void msgF(const __FlashStringHelper *ifsh, uint16_t n) {
   Serial.println(n);
 }
 
+void readPage(uint16_t page) {
+  msgF(F("readPage"), page);
+  if ((page > 0) && (page <= NUMBER_OF_PAGES)) {  // page is translated -1 so eg 10 reads [9]
+    optiboot_readPage(flashSpace, chunk.ramBuffer, page);
+  } else {
+    msgF(F("err: Page max "), NUMBER_OF_PAGES);
+  }
+}
+
+void writePage(uint16_t page) {
+  msgF(F("writePage"), page);
+  if ((page > 0) && (page <= NUMBER_OF_PAGES)) {
+    optiboot_writePage(flashSpace, chunk.ramBuffer, page);
+  } else {
+    msgF(F("err: Page max "), NUMBER_OF_PAGES);
+  }
+}
+
 void copyBeis(uint8_t  n) {
   if (n < anzBeis) {
     byte i = 0;
     byte b = !0;
     while (b != 0) {
-      b = pgm_read_byte(&beis[n][i]);
-      ramBuffer[i++] = b;
+      b = pgm_read_byte( &beis[n][i]);
+      chunk.ramBuffer[i++] = b;
     }
   }
 }
@@ -72,10 +105,19 @@ void showBuchs() {
   }
   Serial.println();
   prepareMuss();
-  showMuss();
 }
 
-void showMuss() {
+void prepareMuss() {
+  byte m = 0;
+  for ( byte i = 0; i < 26; i++)   {
+    if (buchs[i] == '+' ) {
+      muss[m] = i + 'a';
+      m++;
+      if (m > 4) break;
+    }
+  } // next
+  muss[m] = 0;
+  // show
   for ( byte i = 0; i < 6; i++)   {
     if (muss[i] == 0) {
       Serial.println("<");
@@ -87,27 +129,14 @@ void showMuss() {
   Serial.println("??");
 }
 
-void prepareMuss() {
-  // buchs to  muss
-  byte m = 0;
-  for ( byte i = 0; i < 26; i++)   {
-    if (buchs[i] == '+' ) {
-      muss[m] = i + 'a';
-      m++;
-      if (m > 4) break;
-    }
-  } // next
-  muss[m] = 0;
-}
-
-void showBuff() {
+void showChunk() {
   for ( byte i = 0; i < 128; i++)   {
     if (i % 80 == 0) Serial.println();
-    if (ramBuffer[i] == 0) {
+    if (chunk.ramBuffer[i] == 0) {
       Serial.println("<<");
       return;
     }
-    Serial.write(ramBuffer[i]);
+    Serial.write(chunk.ramBuffer[i]);
     if (i % 5 == 4) Serial.write(' ');
   } //next
 }
@@ -149,8 +178,8 @@ bool checkIst() {
           Serial.write(ist[j]);
         }
         Serial.write(' ');
-      }
-      return true;
+        return true;
+      } // found
     } else {
       if (verbo) Serial.write('E');
       return false;
@@ -159,16 +188,16 @@ bool checkIst() {
     if (verbo) Serial.write('M');
     return false;
   }
+  if (verbo) Serial.write(' ');
 }
 
-void checkBuff() {
+void checkChunk() {
   byte ic = 0;
   char c;
-  byte  found = 0;
   for ( byte i = 0; i < 128; i++)   {
-    c = ramBuffer[i];
+    c = chunk.ramBuffer[i];
     if (c == 0) {
-      if (found > 0) Serial.println("<<");
+      Serial.println("<<");
       return;
     }
     if (verbo) Serial.write(c);
@@ -180,7 +209,7 @@ void checkBuff() {
       ist[ic] = c;
       ic++;
       if (ic > 4) { //wort in ist  ist zulässig
-        if (checkIst()) found += 1;
+        checkIst();
         ic = 0;
       } // zulässig
     } // allowed
@@ -195,7 +224,7 @@ void doLoop(uint16_t n) {
   if (n > anzBeis) n = anzBeis;
   for ( byte b = 0; b < n; b++) {
     copyBeis(b);
-    checkBuff();
+    checkChunk();
   }
   endMs = millis();
   Serial.print("Pages ");
@@ -208,16 +237,18 @@ void doLoop(uint16_t n) {
 // -abc  verbieten
 // +abc  muss
 // #abc  egal
-// =a*b**     exakt 5!
+// =a_b__     exakt 5!
 // 0..9 zu inp
+// w
 // b beispiel -> flash
+// r
 // d suche laut drin
 // e suche laut exac
 // n suche laut nidri
 
 void prompt() {
-  instat = norm;
-  if (autom) Serial.print("A>"); else Serial.print("N>");
+  state = norm;
+  Serial.print("N>");
 }
 
 void doCmd(byte tmp) {
@@ -238,25 +269,24 @@ void doCmd(byte tmp) {
 
   switch (tmp) {
     case '+':   //
-      instat = plus;
+      state = plus;
       return;
     case '-':   //
-      instat = minus;
+      state = minus;
       return;
     case '#':   //
-      instat = leer;
+      state = leer;
       return;
     case '=':   //
-      instat = exakt;
+      state = exakt;
       exacP = 0;
       return;
     case 13:
-      if (autom) doLoop(0);
       prompt();
       return;
   } // switch control
 
-  if (instat == exakt) {
+  if (state == exakt) {
     if (exacP > 4) {
       Serial.println("<<");
       prompt();
@@ -273,54 +303,60 @@ void doCmd(byte tmp) {
     prompt();
     return;
   }
-  if (instat == plus) {
+  if (state == plus) {
     buchs[tmp - 'a'] = '+';
     return;
   }
-  if (instat == minus) {
+  if (state == minus) {
     buchs[tmp - 'a'] = '-';
     return;
   }
-  if (instat == leer) {
+  if (state == leer) {
     buchs[tmp - 'a'] = ' ';
     return;
   }
-  if (instat == exakt) {
+  if (state == exakt) {
     exac[exacP++] = tmp;
     return;
   }
   switch (tmp) {
-    case 'a':   //
-      autom = !autom;
-      Serial.print("utom ");
-      if (autom) Serial.println("an"); else  Serial.println("aus");
-      break;
     case 'b':   //
       copyBeis(inp);
-      showBuff();
+      showChunk();
       break;
     case 'c':   //
-      showBuff();
+      showChunk();
       break;
     case 'i':   //
       initBuchs();
       break;
     case 'l':   //
       Serial.println("oop");
+      prepareMuss();
       doLoop(inp);
       break;
     case 'p':   //
       Serial.println("ruf");
       prepareMuss();
-      checkBuff();
+      checkChunk();
       break;
     case 's':   //
       showBuchs();
       break;
+    case 'r':   //
+      readPage(inp);
+      break;
+    case 'w':   //
+      writePage(inp);
+      break;
     case 'v':   //
       verbo = !verbo;
       Serial.print("erbose ");
-      if (verbo) Serial.println("an"); else  Serial.println("aus");
+      if (verbo) {
+        Serial.println("an");
+      } else {
+        Serial.println("aus");
+      }
       break;
     default:
       Serial.print(tmp);
@@ -333,6 +369,8 @@ void setup() {
   const char info[] = "wort5 " __DATE__  " " __TIME__;
   Serial.begin(38400);
   Serial.println(info);
+  msgF(F("chunk"), sizeof(chunk));
+  msgF(F("flash"), sizeof(flashSpace));
   msgF(F("beisp"), sizeof(beis));
   initBuchs();
   prompt();
