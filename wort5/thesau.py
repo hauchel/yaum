@@ -7,7 +7,6 @@ class ldb():
         self.db = mdb.connect(host='localhost',user='root', password='', database='thesau')
         self.cs= self.db.cursor()
         self.verbose=False
-        #self.verbose=True
 
     def say(self,s):
         if self.verbose:

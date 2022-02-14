@@ -1,5 +1,5 @@
 const byte anzBeis = 59;
-const static char PROGMEM beis [anzBeis][126] = {
+const static char beis [anzBeis][128] __attribute__ (( aligned(SPM_PAGESIZE) )) PROGMEM = {
   "aalenabbauabendabgasabortabrufabteiabzugachimachseackeradelnadleradolfaehreaffigaffinafteragentagileahlenahmenahnenahninaktie",
   "aktivakutealarmalbumalibialienalleealpinaltaralterammerampelamselanbauanderangstanitaankeranmutanrufantikantjeantonanzugapfel",
   "appelaprilarchearealarenaarierarmeearminarndtarrakarschartenartigascheasiatasienasselathenatlasatmenaurumautoraxiombabelbacke",
