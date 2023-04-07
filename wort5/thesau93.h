@@ -1,4 +1,6 @@
+// Data Source http://aspell.net and https://www.openthesaurus.de/
 const byte anzBeis = 93;
+// 25 5 letter worte each. Never ever use any other chars than a..z, else program will crash
 const static char beis [anzBeis][128] __attribute__ (( aligned(SPM_PAGESIZE) )) PROGMEM = {
   "aalenabartabbatabbauabbogabendabgababgasabhatabhobabkamablagabortabrufabsahabsudabtatabteiabtunabwegabwogabzogabzugachimachse",
   "ackeracryladelnadieuadleradligadobeadolfadriaaebteaehreaerobaesenaesseaesteaetnaaexteaffigaffinafteragaveagentagileahlenahmen",

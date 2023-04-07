@@ -1,0 +1,150 @@
+Commands, Syntax . usually means a numeric byte value 
+
+Prog related
+cr	show
+.r	read prog . 
+.R  read prog . although current dirty
+w  	write current prog
+.W  write prog .
+.c	set progp to . 
+curs up/down move progp
+., 	insert . at progp
+.. 	replace . at progp ( e.g. 25.)
+y	delete at progp
+b   backup (print to copy)
+ä 	teach on/off
+
+Control related
+.e	select servo .
+a	attach selected servo
+d	detach selected servo
+D	detach all
+.p	set selected servo to position . (uint16)
+.#	select pos# . and set selected servo
+.o  like # but slow move using delt and tickms
++	inc position by delt
+-	dec position by delt
+._  set delt to .
+.T  set tick to . ms (uint16)
+.q	min . is stored in 0#
+.Q	max . is stored in 9#
+f	fetch positions
+h	write positions
+i	show positions of selected servo and Inputs
+I	i+Stack
+
+Execution related
+
+
+Eprom Layout:
+0..proglen-1  program 0
+proglen .. 2*-1       1
+...
+epromAdr      data Area
+
+Limits durch Befehle:
+s	16 Servos Servo 0 ist Stepper
+p   10 Positions per Servo, Position 0 ist Minimal, Position 9 Maximalwert
+r	16 Progs 
+l	 8 Labels per Prog, Label 5,6,7 Sonderfunktionen
+i	16 Inputs, Input 0 sollte Stepper Anschlag 0 sein
+o	16 Outputs
+
+Befehle					Hex		Dez
+Reserved				0x
+Select Servo (e)		1s		16  17  18
+Set Position (#)		20..9	32
+SloMov set	(o)			2A		42
+Stepper Pos to 0		2B		43		see E5
+						2C		44
+Wait Stepper/SloMov		2D		45
+Attach		(a)			2E		46
+Detach		(d)			2F		47
+Waittil Inp True		3i		48 	49 	50 51 52
+Waittil Inp False		4i		64 	65 	66
+Skip if Inp True		5i		80  81  
+Skip if Inp False		6i		96	97
+DJNZ 1                  70..7	112	113	
+DJNZ 2					78..F	120	121
+ActIn5					81..7	129		Jump to Label5 when Inp(1..7) is true, 0 disable
+ActIn6					89..F	136		Jump to Label6 when Inp(1..7) is true, 8 disable
+inc,dec...				9					
+Label    				A0..7	160  	7 used for timeout,6,5 for Actin
+Jump 					A8..F	168
+CallProg				Br		176	177	178  spender ruft Bahn!
+Set Out Hi				Co		192          spender Pos Stepper
+Set Out Lo				Do
+2 byte commands			E		exclude A0..7 (160..167) and FF!
+delay					E0		224
+set var1				E1		225  
+set var2				E2		226
+						E3
+						E4
+stepper pos				E5
+						E6		230	
+set Delta               E6		
+set ticMs               E7
+Stepper ramp			E8			
+						
+NOP						F0		240
+Break					F1		24
+DetachAll				F2		242
+Single Step off			F3
+Trace on				F4
+Trace off				F5
+showStack				F6
+Error a,b,c				FA..C	250 251 252
+						FD		253
+Return					FE		254 (currently =FF)
+Endprog					FF		255
+
+Return Values
+ 0 ok
+ 1 
+ 4 Stop button (if avail)
+ 5 Keyboard
+ 6 call prog encountered
+ 8 FD 	
+ 9 FE or FF (pop stack)
+10 Program jwd (progp) 
+12 Input not configured
+13 Invalid Servo selected
+20 Label not found
+25 Stack overflow
+26 call but current prog is dirty
+30 Error a
+31 Error b
+32 Error c
+
+
+Relais Umschalter Top view, logos unten rechts
+    6					1
+			g	y
+	+	a	g	y	b 	+
+			|	|
+	-	b	g	y	a	-
+	b					a
+	
+
+Buttons:
+Links mb 1a
+Mitte 1b 2b
+Recht ma 2a
+
+g=RX, y=TX 
+  Port    Kabel			   Port		Kabel	
+12green - orange = RX    12yellow - yellow = TX
+m green - yellow = RX	 m yellow - orange = TX 	
+	
+RX	1ga - myb  TX  Li
+RX	1gb - 2yb  TX  Mi
+TX	1ya - mgb  RX  Li
+TX	1yb - 2gb  RX  Mi	
+RX	mga - 2ya  TX  Re	
+RX	mgb - 1ya  TX  Li
+TX	mya - 2ga  RX  Re
+TX	myb - 1ga  RX  Li
+RX	2ga - mya  TX  Re
+RX	2gb - 1yb  TX  Mi
+TX	2ya - mga  RX  Re
+TX	2yb - 1gb  RX  Mi

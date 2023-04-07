@@ -1,0 +1,33 @@
+Steuerung von 4 Schrittmotoren
+Mit Arduino Mini Pro + MCP + n*A4998
+über im Eprom gespeicherte Programme
+Schrittgeschwindigkeit ist via Timer2 einstellbar, aber für alle gleich, keine Rampen.
+A0 bis A3 sind Eingänge können ein Programm aufrufen
+A4 und A5 für TWI
+
+Steuerung in UPN, nachfolgend steht @ für eine eingegebene Zahl
+
+Steuerung erfolgt über Vorgabe von Positionen
+@y Auswahl des Steppers @ und Enable
+D	Disable aktuellen Stepper
+E	Enable aktuellen Stepper
+i	Zeige aktuelle Positionen und ausstehende Bewegungen
+@s	Stelle aktuellen Stepper auf Position @ (Position 0 bedeutet nicht stellen, das ist für Points (s.u.) wichtig
+w	Warte bis alle Stepper die ihre Position erreicht haben
+W	?
+Leertaste	Stop und disable alles
+
+Waypoints sind Sammlung von Positionen aller 4 Stepper.
+Es gibt const byte nPts = 20 Points, die im Eprom (Ab Adreesse 600) gespeichert werden
+j	lies Points
+J	schreibe Points
+u	Zeige Points
+@p	positioniere alle Stepper auf point @
+@P	definiere aktuelle Positionen als point @
+
+lesen 
+Jedes Programm ist 
+Befehle:
+in Upn, nachfolgend ist n die zuletzt eingegebene Nummer(
+
+

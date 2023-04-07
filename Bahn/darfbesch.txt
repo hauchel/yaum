@@ -1,0 +1,86 @@
+ist SW für atmega 328 Arduino mit der einfache Steuerungsaufgaben mit Modellbauservos 
+erstellt werden. Ein Stepper kann zusätzlich benutzt werden.
+Die Steuerungs-Programme werden im Eprom abgelegt und können 
+so schnell geändert werden ohne das Arduino Programm zu ändern.
+Im Einzelschritt urchgehen, Positionen der Servos ändern
+Dabei werden meistens ein-Byte Befehle benutzt, das führt zu gewissen limits
+
+Maximal können 16 Programme (0 bis 15) 
+
+Das Arduino Programm Bahn muss an die Umgebung angepasst werden
+* Definiere Inputs
+Programmtechnisch können 16 inputs verwendet werden die von 0 bis 15 numeriert sind
+hier brauchen wir nur 7
+const byte anzIn = 7;
+const byte inMap[anzIn] = {8,    A3,   A2,   A1,   A0,    7,    6};
+const bool inInv[anzIn] = {true, true, true, true, false, true, true};
+mit inMap werden die Arduino Pins zugeordnet, hier ist 
+inInv wird bestimmt, ob der Eingang invertiert wird oder nicht.
+
+Ebenso können 16 outputs verwendet werden
+const byte anzOut = 4;
+const byte outMap[anzOut] = {13, 12, 11, 10};
+
+Die Steuerung der Servos (oder Stepper) erfolgt über Positionstabellen, 
+Pro servo können 10 Pos# (von 0 bis 9) definiert werden.
+Pos# 0 ist der Minimal zulässige Wert, Pos# 9 Maximalwert. 
+Das soll mechanischen Belastungstest
+Diese können interaktiv geändert werden
+Ein Stepper verwendet, ist immer als Servo 0 angesprochen
+
+
+
+Bahn
+
+0 Stepper	1 Horiz			2 Vertikal		4 AusGreif		5 AusDreh
+0 0			0 Min			0 Min			0				0
+1 LadeFeed	1 Eingef		1 Oben			1 zu			1 Innen
+			2 Rausgezogen	2 Fahrn			2 leicht offen	2
+			3 Kurz vor lad  3 über etlad	3 noch drehbar	3
+			4 LadeFeed		4 LadeFeed						4
+			5 Entlad    	5 Entlad		5 ganz offen,	5
+			6 Loop			6 Loop
+			7				7 unter 8
+			8 Raus			8 Raus
+			9 Max			9 Max
+
+Params:
+delt 4
+tickMS 20
+
+Progs
+ 1 Grundstellung							18,46,33,224,10,17,46,33,16,47,45,160,229,10,46,32,45,80,168,224,30,33,45,255,
+ 2 Fahrt zu LadeFeed		dann feeden		16,46,33,45,18,46,34,17,46,35,224,50,18,36,224,10,17,36,255,
+ 3 Von LadeFeed -> Move	dann Stepper	17,46,35,224,10,18,46,34,224,30,17,33,16,46,255,
+ 4 Move -> Entladen						18,46,34,17,46,37,224,50,18,37,224,50,38,224,10,17,34,224,20,18,34,16,46,255,
+ 5 zu loop  								18,46,38,224,10,17,46,33,224,20,18,33,16,46,255,
+ 6 Move->Laden							18,46,37,224,20,17,46,37,224,50,18,34,255,
+ 7 Prepare Raus						20,46,33,224,20,21,46,33,224,30,20,37,255,
+ 8 Raus									20,37,46,16,40,45,18,40,17,40,224,100,18,39,224,50,17,34,255,
+ 9 Zu und rum							20,33,46,224,50,47,21,35,46,224,40,37,224,33,255,
+10 positio links oben
+11 feed rein
+12 feed raus
+13 
+
+0R22,255,
+1R18,46,33,224,10,17,46,33,22,46,33,23,46,33,16,47,45,160,229,10,46,32,45,80,168,224,30,33,45,47,255,
+2R16,46,33,45,18,46,35,17,46,35,224,50,18,36,224,10,17,36,255,
+3R18,46,42,35,45,17,46,42,35,45,16,46,255,
+4R18,46,35,17,46,42,37,45,18,37,224,30,17,33,224,20,18,35,16,46,255,
+5R16,46,33,45,17,46,38,18,46,38,255,
+6R17,46,33,224,50,18,46,37,224,20,17,37,224,50,18,42,35,45,17,42,35,45,16,255,
+7R20,46,34,224,20,21,46,33,224,30,20,37,17,46,42,34,45,16,255,
+8R20,37,46,16,46,40,45,18,46,40,17,42,40,45,20,34,18,39,224,10,20,33,17,34,20,47,255,
+9R20,33,46,224,50,47,21,35,46,224,20,37,224,20,20,46,35,224,50,21,35,255,
+10R17,46,33,18,46,33,224,20,255,
+11R22,33,46,23,46,35,224,20,42,36,45,255,
+12R22,46,35,224,20,23,33,22,42,36,45,33,255,
+13R176,255,
+14R255,
+15R150,0,144,1,130,1,236,0,178,0,230,0,150,0,255,
+
+
+
+4 Justage
+
