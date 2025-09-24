@@ -1,0 +1,75 @@
+https://nlp.stanford.edu/software/lex-parser.shtml
+start lexparser-gui.bat
+load parser 
+stanford-parser-4.2.0-models.jar
+select edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz
+load file
+Save Output
+
+https://www.brainzilla.com/logic/zebra/beach-day/
+
+(ROOT 
+(S 
+	(NP 
+	   (NP (DT The) (NN woman))
+	   (VP (VBG drinking) (NP (NN Grape) (NN juice)))) 
+	(VP (VBZ is) 
+	(ADVP (RB next) (PP (IN to) 
+	(NP (DT the) (NN woman)))) 
+	(VP (VBG using) 
+	(NP (DT the) (JJ Green) (NN towel)) )) (. .)))
+
+
+Diese Abkürzungen stammen größtenteils vom Penn Treebank Tag Set.
+S		Satz / Hauptsatz	She runs.
+DT		Determiner / Artikel
+NN		Nomen, Singular
+NNP     Eigenname, Singular
+NP		Noun Phrase (Nominalphrase)	the big dog
+VP		Verb Phrase (Verbalphrase)	is running fast
+VBZ		Verb, 3. Pers. Singular, Präsens
+
+PP		Prepositional Phrase	in the garden
+
+
+NP → Noun Phrase → Nominalphrase, z. B. „the big dog“
+
+VP → Verb Phrase → Verbalphrase, z. B. „is running fast“
+
+PP → Prepositional Phrase → Präpositionalphrase, z. B. „in the garden“
+
+ADJP → Adjective Phrase → Adjektivphrase, z. B. „very happy“
+
+ADVP → Adverb Phrase → Adverbphrase, z. B. „quite slowly“
+
+
+url = "https://www.zebrapuzzles.com/"
+https://www.zebrapuzzles.com/p/2MpRpQtw/  
+https://www.zebrapuzzles.com/p/bfWKokYv/ solved
+https://www.zebrapuzzles.com/p/WCpe23GC/
+
+Stufen:
+
+Extrahiere alle Rätsel nach h.txt
+python zebget.py url
+
+Trenne auf in h1.txt bis h5.txt:
+python zebcon.py
+
+python zebeva.py h1
+erzeugt h1.pl im prolog-home
+
+?- [h1].
+listing(puzz).
+?- puzz(Shirt,Name,Impersonation,Prize).
+Shirt = [4, 1, 2, 3],
+Name = [4, 2, 3, 1],
+Impersonation = [2, 3, 1, 4],
+Prize = [2, 1, 4, 3] ;
+false.
+
+Ergebnis bedeutet ist in Spalte d.h
+Zeile 1 (shirt) Spalte 4, dort den 1; Spalte 1 den 2. usw
+
+
+Brainzilla

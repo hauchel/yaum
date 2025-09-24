@@ -19,18 +19,19 @@ with open(fnam+'.txt') as f:
         if mod==0:
             if line[:3] == 'Aus':
                 t=line[4:].split(' ',1)[0]
-                alis.append(t.capitalize())
+                alis.append(t)
             elif line[:3] == 'Opt':
                 if line[4:] != '' : 
                     t=line[4:].split(' ',1)[0]
-                    if t.isdigit(): t='Z'+t
-                    if t[0]=='$':   t='D'+t[1:].split(',',1)[0]
-                    olis.append(t.capitalize())
+                    #hh if t.isdigit(): t='Z'+t
+                    #hh if t[0]=='$':   t='D'+t[1:].split(',',1)[0]
+                    t=t.split(',',1)[0]
+                    olis.append(t)
             elif line[:3] == 'End':
-                txt=alis[0]+' = ['
+                txt=alis[0]+' '
                 for o in olis:
-                    txt += o+', '
-                txt=txt[:-2]+'],'
+                    txt += o+' '
+                #hhtxt=txt[:-2]+'],'
                 print (txt)
                 txa+=txt+'\n'
                 olis=[]

@@ -1,8 +1,15 @@
 # Stufe 1 holt 5 Rätsel > h.txt
 import requests
 from bs4 import BeautifulSoup
+import sys
 
-url = "https://www.zebrapuzzles.com/"
+if len(sys.argv) == 1:
+    url = "https://www.zebrapuzzles.com/"
+else:
+    url=sys.argv[1]
+
+print("getting ",url)
+
 headers = {"User-Agent": "Mozilla/5.0"}
 
 resp = requests.get(url, headers=headers, timeout=15)
