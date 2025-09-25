@@ -17,7 +17,7 @@ resp.raise_for_status()
 
 soup = BeautifulSoup(resp.text, "lxml")
 fnam='h.txt'
-f=open (fnam,'w') 
+f=open (fnam,'w',errors="ignore") 
 
 # --- Dropboxes ---
 dropboxes = soup.find_all("select")

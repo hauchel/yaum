@@ -19,11 +19,14 @@ else:
 pfad = "C:\\users\\hh\\Documents\\Prolog\\"
 print ("process", fnam+'.txt nach ',pfad)
 
-npos=0      # anzahl Spalten = Position
-kex=[]      # Suchbegriff all lowercase
-vn={}     # Name des Suchbegriffs (uppercase, 
-prop=[]     #
-lins=[]     # 
+npos=0          # anzahl Spalten = Position
+kex=[]          # Suchbegriff all lowercase
+kexse=set()     # to avoid duplicates
+vn={}           # Name des Suchbegriffs (uppercase, 
+vpro={}         # propery des Varnam
+prop=[]         #
+lins=[]         # 
+puznam=''       # Aufruf
 mod=0
 with open(fnam+'.txt') as fin:
     fout=open(pfad+fnam+'.pl','w')
@@ -38,9 +41,11 @@ with open(fnam+'.txt') as fin:
                     print (prop)
                     print('Kex=',kex)
                     print('Vnam',vn)
+                    print('VPro',vpro)
                 t='puzz('
                 for p in prop: t+=p+','
                 t=t[:-1]+')'
+                puznam=t
                 print(t+'.')    #call in prolog
                 t+=':-\n'
                 fout.write(t)
@@ -52,28 +57,36 @@ with open(fnam+'.txt') as fin:
                 if npos == 0:
                     npos=npn
                 else:
-                    if (npos != npn): print ("--------> Differen npos ",npos,npn,values)
+                    if (npos != npn): print ("\n--------> Differen npos ",npos,npn,values)
                 #print(npos,'Values=',values)
                 li=values[0].capitalize()
-                prop.append(li)
+                pro=li
+                prop.append(pro)
                 li+=' = ['
                 for i in range(1,len(values)):
                     k=values[i].lower()
-                    kex.append(k) #generate vn for item found
-                    if k[0]=='$':
-                        vn[k]=li[:2]+k[1:]
-                    elif k.isdigit():
-                        vn[k]=li[:2]+k
+                    if k in kexse:
+                        print("\n--------> Duplicate kex ",k,values)
                     else:
-                        vn[k]=k.capitalize()
-                    li+=vn[k]+', '
+                        kexse.add(k)
+                    kex.append(k) 
+                    #generate vn for item found
+                    if k[0]=='$':
+                        vna=li[:2]+k[1:]
+                    elif k[0].isdigit():
+                        vna=li[:2]+k
+                    else:
+                        vna=k.capitalize()
+                    vna=vna.replace("-", "")
+                    vn[k]=vna
+                    vpro[vna]=pro
+                    li+=vna+', '
                 li=li[:-2]+'],'
                 lins.append(li)
         else:
             if line != '':
                 if line[0] != '%': line='%'+line
             line=line.lower()
-            fout.write(line+'\n')
             treffer = []
             for wort in kex:
                 for m in re.finditer(re.escape(wort), line):
@@ -82,8 +95,11 @@ with open(fnam+'.txt') as fin:
             fux = [wort for _, wort in sorted(treffer, key=lambda x: x[0])]
             #print (line)
             fund=[]
+            t=' '
             for f in fux:
                 fund.append(vn[f])
+                t+=f+':'+vn[f]+'('+vpro[vn[f]]+') ';
+            fout.write(line+t+'\n')
             fund.append('???')
             fund.append('???')
             #print (fund)
@@ -92,7 +108,7 @@ with open(fnam+'.txt') as fin:
                 fout.write(fund[0]+" = 1,\n")
             elif "second position" in line:
                 fout.write(fund[0]+" = 2,\n")
-            elif "third position" in line:
+            elif "third position" in line or  "position number 3" in line:
                 fout.write(fund[0]+" = 3,\n")
             elif "fourth position" in line:
                 fout.write(fund[0]+" = 4,\n")
@@ -129,17 +145,27 @@ with open(fnam+'.txt') as fin:
     # 
     anz=len(prop)
     for i in range(anz): 
-        t="valid_list("+prop[i]
-        if i==anz-1:
-            t+=').'
-        else:
-            t+='),'
-        print(t)
-        fout.write(t+'\n')
+        t="valid_list("+prop[i]+"),\n"
+        fout.write(t)
+    for i in range(anz):
+        t=prop[i]+'         '
+        t=t[:12]
+        t="format('"+t+"~w~n', ["+prop[i]+"]) ,\n"
+        fout.write(t)    
+          
+    fout.write("write('Done').\n")        
+        
     fout.write('\nmax_ele('+str(npos)+').\n')
     for i in range(1,npos+1):
         fout.write('ele('+str(i)+'). ')
-    
+#
+    fout.write('\n\nstart :-\n')
+#   puzz(Shirt,Name,Impersonation,Prize),
+    fout.write(puznam+' ,\n')
+#   format('Cart = ~w, Husband = ~w, Wife = ~w, Room = ~w,',Shirt,Name,Location,Position),
+    fout.write('fail.\n')
+	
+
     tx="""																																																						
 valid_list(List) :-
     all_in_range(List),
