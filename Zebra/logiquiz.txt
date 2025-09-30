@@ -1,0 +1,9 @@
+logiquiz.com
+   # 1. What is the answer to the question #4?
+        ist=sol[4]  #
+        if not check(1,ist):continue
+    # 2. What is the answer to the question #2?
+        ist=sol[2]  #
+        if not check(2,ist):continue   
+    # 3. How many questions have answer A?        
+        ist=sol.count('A')

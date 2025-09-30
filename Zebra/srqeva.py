@@ -1,0 +1,187 @@
+# -*- coding: utf-8 -*-
+#Erzeugt py aus text für srq
+# ! Kommentare
+# # 2. How many questions have answer E? ->  ist=sol.count('e') if not check(2,ist):continue
+#  % = letzer wert von Zeile ~ nach #, z,B, Which is the closest question before #5 that has the answer A?
+# sonst rausschreiben
+
+
+resultdatei ="D:/zebra/result.txt"        # / im aktuellen dir da aus prolog
+
+lins=[]         # 
+puznam=''       # Aufruf
+quenum=0        #aktuelle Frage
+ind='        '  #
+ind1='    '
+ques=[]
+pyth=[]
+ques.append("What is the answer to the question")       #1
+pyth.append("ist=sol[%]")
+ques.append("How many questions have answer")           #2
+pyth.append("ist=sol.count('%')")
+ques.append("Which is the first question with answer")  #3
+pyth.append("ist=sol.count('%')\n"+ind+"if ist > 0: ist = sol.index('%')")
+ques.append("Which is the last question with answer")   #4
+pyth.append("ist=sol.count('%')\n"+ind+"if ist > 0: ist = len(sol) - 1 - sol[::-1].index('%')")
+ques.append("How many letters away is the answer to this question from the answer to question")
+pyth.append("ist=letters_away(%,~)")
+ques.append("Which is the closest question after")      #6
+pyth.append("ist=closest_after('%',~)")
+ques.append("Which is the closest question before")     #7
+pyth.append("ist=closest_before('%',~)")
+ques.append("Which are the only 2 consecutive questions")      #8
+pyth.append("ist=find_paare()")
+ques.append("Which is the least common answer")      #9
+pyth.append("ist=min_common()")
+
+
+debug=False
+
+import sys
+
+prolog= """\
+# -*- coding: utf-8 -*-
+import sys
+if len(sys.argv) > 1:
+    debug=sys.argv[1]
+else:
+    debug='c'
+if len(sys.argv) > 2:
+    runs=int(sys.argv[2])
+else:
+    runs=10000   
+print (sys.argv[0],'debug',debug,'for',runs)    
+
+from collections import Counter    
+
+def nextsol():
+    global sol
+    i=1
+    while True:
+        if i in fixed: i += 1 
+        while True:
+            n=inc[sol[i]]
+            if n=='_':  #carry
+                sol[i]='a'
+                i+=1
+                break
+            else:
+                sol[i]=n
+                if ans[i][n] != 'X':               
+                    return
+                        
+def check(q,ist):
+    exp=ans[q][sol[q]]
+    if 'c' in debug: print(q,sol[q],' ',exp,'<>',ist)            
+    return exp==ist
+    
+def letters_away(qa,qb):
+    aa=sol[qa]
+    ab=sol[qb]
+    return abs(ord(aa)-ord(ab))
+
+def indexe(wert, start=0, end=None):
+    if end is None: end = len(sol)
+    return [i for i, x in enumerate(sol) if x == wert and start <= i < end]
+
+def closest_before(wert,pos):
+    ind=indexe(wert,1,pos)
+    if ind==[]: return 0
+    return ind[len(ind)-1]
+
+def closest_after(wert,pos):
+    ind=indexe(wert,pos+1)
+    if ind==[]: return 0
+    return ind[0] 
+ 
+def find_paare():
+    paare = []
+    for i in range(len(sol) - 1):
+        if sol[i] == sol[i+1]:
+            # prüfen, ob davor oder danach das gleiche Zeichen nochmal kommt
+            if (i > 0 and sol[i-1] == sol[i]) or (i+2 < len(sol) and sol[i+2] == sol[i]):
+                continue  # Teil einer längeren Serie -> überspringen
+            paare.append((i, sol[i], sol[i+1]))
+    if len(paare)!= 1:
+        return('')
+    else:
+        p=paare[0][0]   #index
+        tx=f"{p} and {p+1}"
+        return (tx)
+
+def min_common():
+    zaehler = Counter(sol[1:])
+    max_count = max(zaehler.values())
+    min_count = min(zaehler.values())
+    selten = [elem for elem, count in zaehler.items() if count == min_count]
+    if len(selten) == 1: return(selten[0])
+    else: return (0)
+
+inc={'_':'a','a':'b','b':'c','c':'d','d':'e','e':'_'}      # dep nans      
+fixed=[]   # <- manuell
+"""
+    
+if len(sys.argv) == 1:
+    print (sys.argv[0],' fil  [deb] is translate kex ')
+    sys.exit(4)
+else:
+    fnam=sys.argv[1]
+if len(sys.argv) == 2:
+    debug=''
+else:
+    debug=sys.argv[2]
+    
+print ("process", fnam+'.txt ')
+
+with open(fnam+'.txt') as fin:
+    fout=open(fnam+'.py','w')  
+    linno=0
+    fout.write(prolog)
+    
+    for line in fin:
+        line = line.strip()
+        linno+=1
+        if line[0] == '!' : continue
+        if line[0] != "#":
+            fout.write(line+"\n")    
+            continue
+        else:
+            quenum+=1
+            if (quenum==1):
+                fout.write("if __name__ == '__main__':\n")
+                fout.write(ind1+"for i in range (runs):\n")
+                fout.write(ind+"nextsol()\n")
+                fout.write(ind+"if 's' in debug: print (sol)\n\n")
+            fout.write(line+"\n")    
+            print(line)
+
+            anum=0
+            for que in ques:
+                #print(quenum,"->",que)
+                tx="print('??? Enhance srqeva for question "+str(quenum)+"')"
+                pos=line.find(que)
+                if pos != -1:
+                    rest=line[pos + len(que):]
+                    print('rest',rest)
+                    i=rest.find('#')
+                    if i>=0:
+                        qn=rest[i+1:].split()
+                        print('i bei',i, qn)
+                    if len(rest) > 1: rest=rest[-2].lower()
+                    tx=pyth[anum].replace('%',rest)
+                    if i>=0: tx=tx.replace('~',qn[0])
+                    print("found  ",tx)
+                    break
+                anum+=1
+            tx=tx.replace('~',str(quenum))
+            fout.write(ind+tx+"\n")
+            fout.write(ind+"#print('"+str(quenum)+".  ',sol)\n")
+            fout.write(ind+'if not check('+str(quenum)+',ist):continue\n')                   
+      
+    fout.write(ind+"print(i,'Gefunden',sol)\n")
+    fout.write(ind+"fout=open('result.txt','w')\n")
+    fout.write(ind+"for i in range(1,len(sol)): fout.write(sol[i]+' ')\n")
+    fout.write(ind+"fout.write('\\n'); fout.close()\n")
+    fout.write(ind+"break\n")
+    fout.write(ind1+"print(i,' sol =',sol)")
+    fout.close()   

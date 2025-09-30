@@ -134,8 +134,11 @@ class mini():
         print('pros',len(pros))
         self.props=[]
         for p in pros:
-            print(p.text) 
-            self.props.append(p.text)
+            t=p.text
+            print('t vor',t)
+            t=t.replace(' ','')
+            print('t nach',t) 
+            self.props.append(t)
        
     def evalBox(self,spa=1):
         game = self.driver.find_element(By.ID, "game")

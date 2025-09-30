@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# 
+# Self referring Quiz Interface to
+# https://www.logiquiz.com/p/hYpclPe5/#very-easy
 import sys
 import os
 import pygetwindow as gw
@@ -35,13 +36,11 @@ class mini():
         self.inp=inp()
         self.num=0
         self.texte=[]
-        self.links=[]       #für brainzilla
-        self.linknum = 0
-        self.props=[]
-        self.zeilen=[]
+        self.answers=[]
+        self.nans=5         #Anzahl Antworten pro Frage, immer 5?
         self.verbose=0
-        self.baseurl="https://www.zebrapuzzles.com"
-        self.url=self.baseurl
+        self.baseurl="https://www.logiquiz.com"
+        self.url="https://www.logiquiz.com/p/hYpclPe5/#very-easy"
         self.diff=''
         self.diffn=''
         self.tag=''
@@ -69,11 +68,12 @@ class mini():
         #self.driver.minimize_window()  
         
     def starte(self):
-        os.system("title Zebra")
+        tit="SelfRefQuiz"
+        os.system("title "+tit)
         if self.driver is None:
             self.startDriver()
             time.sleep(1)
-            console = gw.getWindowsWithTitle("Zebra")[0]
+            console = gw.getWindowsWithTitle(tit)[0]
             console.activate()
         print("started")
     
@@ -86,32 +86,6 @@ class mini():
         print('url is ',self.url)   
         self.driver.get(self.url)        
     
-    def sammle(self,url,anz=20):
-        if anz == 0:
-            print ('Zeige links')
-            i=0
-            for l in self.links:
-                print(i,l)
-                i+=1
-            return        
-        self.links=[]
-        print ('sammle',anz,' von ',url)
-        self.driver.get(url)
-        time.sleep(1)
-        ber=self.driver.find_element(By.CLASS_NAME,"col-lg-8")
-        anchors =ber.find_elements(By.TAG_NAME, "a")
-        print('gefunden',len(anchors))
-        found=0
-        for a in anchors:
-            href = a.get_attribute("href") #Persian Rugs https://www.brainzilla.com/logic/zebra/persian-rugs/
-            teil = href.split("/logic/zebra/")[-1]
-            print(teil,'      ',href)
-            if teil !='': 
-                 print(found,href)
-                 self.links.append(href)
-                 found+=1
-                 if found>anz: return self.links
-        return self.links
     
     def machurl(self):
         if self.tag=='':
@@ -131,8 +105,11 @@ class mini():
         self.machurl()
         
     def settag(self,ta):
-        tagtab=['', 'iHKszShF','0zQrzuF9','vJan5gzI','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
-        if (ta==0): print(tagtab)
+        tagtab=['','vJan5gzI','VuZTt8Hy','hYpclPe5']
+        tagtab=['','vJan5gzI','iHKszShF','0zQrzuF9','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
+        if (ta==0): 
+            for i in range (len(tagtab)):
+                print(f"{i:>3}  {tagtab[i]} ")
         if ta<len(tagtab):
             self.tag=tagtab[ta]
         else:
@@ -141,47 +118,49 @@ class mini():
 
     def info(self):
         print("\nInfo:")
-        print('G:',self.tag,' D:',self.diffn,' n#:',self.linknum,' = ',self.url)
+        print('G:',self.tag,' D:',self.diffn,' = ',self.url)
         akt=self.driver.current_url
         aki=akt.split('/')
         print(len(aki),aki)
-        print('p:',self.props)
+        if len(aki)>4:  print(aki[4])
         print('c:',self.selcols.keys())
-        for t in self.zeilen:
+ 
+        print('Anzahl t:',len(self.texte),' a:',len(self.answers))
+        
+        for t in self.texte:
             print(t)
-        print('Anzahl t:',len(self.texte))
-        #print('=')
-        #for t in self.texte:
-        #    print(t)
+        for t in self.answers:
+            print(t)
     
     def schreibe(self):        
-        fnam='H'+self.tag[:4]+self.diffn
+        fnam='H'     #+self.tag[:4]+self.diffn
         fnam=fnam.replace("-", "")
         print(fnam)
         with open(fnam+'.txt','w',encoding="utf-8",errors="ignore") as f:
             f.write('! from '+self.driver.current_url+'\n')
-            for t in self.zeilen:
+            sol="sol=['','_',"
+            f.write("ans=[ '',\n")
+            for t in self.answers:
+                sol+="'a',"
                 f.write(t+'\n')
-            f.write('=\n')
+            f.write("]\n")
+            f.write(sol[:-5]+"]\n")
             for t in self.texte:
                 f.write(t+'\n')
-        print('Done. rufe zebeva ',fnam)
-        subprocess.run(["python", "zebeva.py", fnam])
+        print('Done. rufe srqeva ',fnam)
+        subprocess.run(["python", "srqeva.py", fnam])
   
     def lese(self,machs=True):        
         fnam='result.txt'
         print(fnam)
         with open(fnam,'r') as f:
-            z=0
-            for line in f:
-                t=line.split()  # ['Name', '[4,1,2,3]'] 1. Wert in Sp 4, 2. in Sp 1 ...
-                spas = t[1].strip("[]").split(",")
-                print(z,self.props[z],t,spas)
-                for w in range (len(spas)):
-                    s=int(spas[w])
-                    print(z,s,w+1,end='   ')
-                    if machs: self.eintrag(z,s,w+1)
-                print()
+            line=f.readline().rstrip("\n")
+            tt=line.split()  # c c e a c
+            z=1
+            for t in tt: 
+                s=ord(t)-ord('a')+1
+                print(t,z,s)
+                if machs: self.eintrag(z,s)
                 z+=1
         print('Done.')    
     
@@ -190,17 +169,34 @@ class mini():
         self.driver.get(self.url)
     
     def propBox(self):
-        game = self.driver.find_element(By.ID, "game")
-        cols=game.find_elements(By.CLASS_NAME, "column")
-        print('cols',len(cols))
-        # props
-        pros=cols[0].find_elements(By.TAG_NAME, "li")
-        print('pros',len(pros))
-        self.props=[]
-        for p in pros:
-            t=p.text.replace(" ", "")
-            print(t) 
-            self.props.append(t)
+        cols = self.driver.find_elements(By.CLASS_NAME, "question")
+        print('questions',len(cols))
+        self.texte=[]
+        self.answers=[]
+        for c in cols:
+            tops=c.find_element(By.CLASS_NAME, "top")
+            tx=tops.text.strip()
+            tx=tx.replace('\n',' ')
+            tx = '# '+tx
+            print (tx)    # Frage
+            self.texte.append(tx)
+            bo=c.find_element(By.CLASS_NAME, "bottom")
+            flexs=bo.find_elements(By.CLASS_NAME, "d-flex")
+            #print ("flexs",len(flexs))
+            ans=" {"  #python dict
+            for f in flexs:  # Antworten
+                ps=f.find_elements(By.CLASS_NAME, "p-1")
+                p0=ps[0].text
+                p2=ps[2].text
+                if p2=='None': p2 = '0'
+                ausw=' '+p0+' '+p2
+                #self.texte.append(ausw)
+                p0="'"+p0[0].lower()+"' : "
+                if not p2.isdigit():
+                    p2="'"+p2.lower()+"'"
+                ans+=p0+p2+", "
+            ans=ans[:-2]+"},"
+            self.answers.append(ans)
             
     def getsels(self):
         game = self.driver.find_element(By.ID, "game")
@@ -211,18 +207,13 @@ class mini():
             print('Spalte',spa,'sels',len(sels))
             self.selcols[spa]=sels
     
-    def eintrag(self,zei,spa,wert,detail=False):
-        print('Zei',zei,'spa',spa,' =>',wert,'<')
-        select_obj = Select(self.selcols[spa][zei])
-        if detail:
-            for opt in select_obj.options:
-                print(f"{opt.get_attribute('value')} | {opt.text}")
-        current_text = select_obj.first_selected_option.text
-        print("Text:", current_text,end=' ')
-        select_obj.select_by_index(wert) 
-        new_text = select_obj.first_selected_option.text
-        print("New :", new_text)
-    
+    def eintrag(self,zei,spa,doppelt=True):
+        print('Zei',zei,'spa',spa)
+        tx=".question:nth-child("+str(zei)+") li:nth-child("+str(spa)+") .icon"
+        self.driver.find_element(By.CSS_SELECTOR, tx).click()
+        if doppelt:
+            self.driver.find_element(By.CSS_SELECTOR, tx).click()
+            
     def evalBox(self,spa=1):
         game = self.driver.find_element(By.ID, "game")
         cols=game.find_elements(By.CLASS_NAME, "column")
@@ -232,7 +223,7 @@ class mini():
         sels=cols[spa].find_elements(By.TAG_NAME, "select")
         print('sels',len(sels))
         self.selcols[spa]=sels
-        self.zeilen=[]
+      
         z=0
         for s in sels:
             select_obj = Select(s)
@@ -255,20 +246,7 @@ class mini():
                 zeil=self.props[z]+zeil
                 z+=1
             print(zeil)
-            self.zeilen.append(zeil)
-            
-    def holeText(self):
-        game = self.driver.find_element(By.ID, "game")
-        clue=game.find_element(By.CLASS_NAME, "clues")
-        elems = clue.find_elements(By.TAG_NAME, "li")
-        self.texte=[]
-        for e in elems:
-            t = e.text.strip()
-            if not t:
-                continue
-            if  t.endswith(".") :
-                print(len(t),t,'<')
-                self.texte.append(t)
+                       
     
     def onego(self):
         self.holeText()
@@ -312,7 +290,7 @@ class mini():
                 elif tmp=="i": 
                     self.info()
                 elif tmp=="j" or tmp=="J": 
-                    self.eintrag(self.zeinum,self.spanum,self.num,tmp=='J')
+                    self.eintrag(self.zeinum,self.spanum,tmp=='J')
                 elif tmp=="l" or tmp=="L": 
                     self.lese(tmp=='l')
                 elif tmp=="n": 
@@ -344,7 +322,7 @@ class mini():
                     self.zeinum=self.num   
                     print('Zeile',self.zeinum)                    
                 else:
-                    print(tmp,"? n taG,  n Diff,  stArte, holBox, seleCts, Evalbox, Propbox, holText, Info, n Spalte,  Lies, Write, Quit")
+                    print(tmp,"? n taG,  n Diff,  stArte, holBox, Propbox, Info, n Spalte,  Lies, Write, Quit")
                     print("Holen: (nG  nD  Box) oder per Maus, dann O = Text, Prop, selCs, Eval, Info, Write")
                     print("Eintragen: P, C, L oder einzeln nZ nS nJ X opts")
                     print("anzlinks dann Brainzilla: m,n  Alphapuzz M,n")
