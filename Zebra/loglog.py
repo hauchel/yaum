@@ -14,7 +14,20 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import Select
-    
+
+"""
+find_element(By.ID, ‘id’)
+find_element(By.NAME, ‘name’)
+find_element(By.XPATH, ‘xpath’)
+find_element(By.LINK_TEXT, ‘link_text’)
+find_element(By.PARTIAL_LINK_TEXT, ‘partial_link_text’)
+find_element(By.TAG_NAME, ‘tag_name’)
+find_element(By.CLASS_NAME, ‘class_name’)
+find_element(By.CSS_SELECTOR, ‘css_selector’)
+x.getAttribute()
+x.click()
+x.getText()
+"""    
 class mini():
     
     def __init__(self):
@@ -27,7 +40,7 @@ class mini():
         self.props=[]
         self.zeilen=[]
         self.verbose=0
-        self.baseurl="https://www.zebrapuzzles.com"
+        self.baseurl="https://logic.puzzlebaron.com/play.php?u2=e0dd424f52e834bf834c11a29a39d727"
         self.url=self.baseurl
         self.diff=''
         self.diffn=''
@@ -118,10 +131,8 @@ class mini():
         self.machurl()
         
     def settag(self,ta):
-        tagtab=['','FvGZRfdG','IskYgVJs','ueyPebRM','iHKszShF','0zQrzuF9','vJan5gzI','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
-        if (ta==0): 
-            for i in range (len(tagtab)):
-                print(f"{i:>3}  {tagtab[i]} ")
+        tagtab=['','vJan5gzI','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
+        if (ta==0): print(tagtab)
         if ta<len(tagtab):
             self.tag=tagtab[ta]
         else:
@@ -144,7 +155,7 @@ class mini():
         #    print(t)
     
     def schreibe(self):        
-        fnam='H' #+self.tag[:4]+self.diffn
+        fnam='H'+self.tag[:4]+self.diffn
         fnam=fnam.replace("-", "")
         print(fnam)
         with open(fnam+'.txt','w',encoding="utf-8",errors="ignore") as f:
@@ -217,7 +228,7 @@ class mini():
         cols=game.find_elements(By.CLASS_NAME, "column")
         if spa < 1: spa=1
         if spa >len(cols): spa=len(cols)
-        #print('Spalte',spa,'cols',len(cols))
+        print('Spalte',spa,'cols',len(cols))
         sels=cols[spa].find_elements(By.TAG_NAME, "select")
         print('sels',len(sels))
         self.selcols[spa]=sels
@@ -247,17 +258,13 @@ class mini():
             self.zeilen.append(zeil)
             
     def holeText(self):
-        game = self.driver.find_element(By.ID, "game")
-        clue=game.find_element(By.CLASS_NAME, "clues")
-        elems = clue.find_elements(By.TAG_NAME, "li")
+        elems=self.driver.find_element(By.CLASS_NAME, "clues")
         self.texte=[]
-        for e in elems:
-            t = e.text.strip()
-            if not t:
-                continue
-            if  t.endswith(".") :
-                print(len(t),t,'<')
-                self.texte.append(t)
+        attrs = " ".join(f'{k}="{v}"' for k,v in elems.attrs.items())
+        print(f"<{c.name} {attrs}>")
+        # Textinhalt kurz anzeigen
+        #            text = c.get_text(strip=True)
+        #    print(f"  Text: {text[:50]}")
     
     def onego(self):
         self.holeText()

@@ -1,0 +1,84 @@
+Idee:
+Kleines sehr rudimentäres Hilfsprogramm um verschiedene deutsche wordle zu lösen.
+Die möglichen Worte kommen aus Datenbank oder Textfile. Aus DB sind sie sortiert wie in Wortauswahl unten beschrieben
+Ausgewähltes Wort wird via Selenium eingetragen, das Ergebnis ausgelesen oder per Hand eingegeben. 
+
+Voraussetzung:
+Chrome und passenden Chromedriver
+MySql und Datenbank wordle mit Tabelle worte
+python meine Version ist 3.12.3
+wordle.py, inp.py, wordledb.py
+
+Konfiguration in wordle.py __init__: 
+Chromedriver location           self.driverloc = r'D:/greed/chromedriver.exe'
+Chrome Datenverzeichnis         self.arg="user-data-dir=..."  dort werden die cookies der Website abgelegt
+Wortschatz als Textdatei        self.filename = "worte.txt"
+Website des puzzles             Siehe unten
+Website um Worte zu holen       self.base_url = "https://www.wortlisten.com/worter5buchstaben"
+Default Website   puzzle        self.website(3,False)      3 ist Tagesspiegel
+Mysql verwenden:                from wordledb import ldb   mit # auskommentieren falls nicht gewünscht
+                                in wordledb.py: self.db = mdb.connect(host='localhost',user='root', password='geheim', database='wordle')
+                        
+Aufruf: aus windows console: python wordle.py [pnr]  pnr ist Zahl um die Website auszuwählen, default ist z.Zt 3
+
+Ablauf: (Das Human Machine Interface hat den Charme der frühen 80er des letzten Jahrhunderts)
+r   Lies Wortschatz-Datei oder
+g   lies Mysql Tabelle (main Exception 'NoneType' object has no attribute 'getData' falls wordledb nicht importiert)
+e   rufe Website auf. Falls angemeldet (kostet nix) passendes Datum aussuchen
+x   löst (auch teilausgefüllte)
+
+Im Einzelnen:
+
+Angezeigt wird das aktuell vorgeschlagene Wort und die bekannten an der richtigen Stelle (grün) , nicht drin (grau) oder drin (gelb)
+SIENA  0   ['S', '', '', '', ''] ['N', 'A'] ['I', 'E']
+                 grün                grau       gelb
+p   prüft dieses Wort mit den bekannten Bedingungen,schlägt neues Wort vor
+k   sendet aktuelles wort an website
+h    Hole Ergebnis von Website (nur 2 oder 3, nicht bei Spiegel 1)
+oder manuell für die 5 Buchstaben eingeben
+   0  grau        nicht drin
+   1  orange      drin, aber falscher Ort
+   8  grün        am richtigen Ort, aber noch mehrfach möglich
+   9  grün        am richtigen Ort, garantiert nur eins   (nur Spiegel 1, nicht bei anderen Wordles)
+
+Dann wieder    
+p   prüfen, d.h. nächstes passende Wort finden (main Exception list index out of range: keins gefunden)
+k   senden
+h   holen
+usw 
+
+x   macht holen prüfen senden bis gelöst, kann mit # unterbrochen werden, das ist erforderlich wenn ein wort nicht erlaubt ist. 
+s   Neustart
+q   beenden
+
+
+Weitere Funktionen siehe doit() z.B.
+L   Wort in DB löschen da nicht zulässig
++   nächstes Wort
+-   voriges Wort
+v   verbose togglen
+
+Zudem Database Maintenance Funktionen in wordldb.py, siehe dort
+
+
+Wortauswahl: 
+In DB steht für jedes Wort die Summe der Buchstabenhäufigkeit in der deutschen Sprache:
+       self.hauf = {'A': 65, 'B': 19, 'C':30, 'D': 50, 'E': 174, 'F':16, 'G':30,
+                     'H':47,'I':75,'J': 2, 'K': 12, 'L':34,'M': 25, 'N':98,
+                     'O':25,'P':8,'Q': 0, 'R': 70, 'S':72,'T': 61, 'U':43,
+                     'V':7,'W':19,'X': 0, 'Y':0, 'Z':11 }
+Höchster Wert für Worte in denen jeder Buchstabe nur einmal vorkommt ist SIENA mit 484 oder STERN und ERNST mit 475(vergl  ERNSTL). 
+
+
+Wortliste in DB
+   https://www.wortlisten.com/worter5buchstaben.htm
+   https://www.sprachnudel.de/woerterbuch/wortsuche/woerter-nach-wortlaenge/woerter-mit-5-buchstaben#liste
+
+
+Websites mit puzzle
+  https://www.spiegel.de/games/wordle-auf-deutsch-kostenlos-online-spielen-a-cbfa309d-a8ad-4d7d-9234-28b09b945834
+  https://begriffel.tagesspiegel.de/
+  https://www.wördle.de/
+  https://wordle-de.github.io/
+  https://wrdl.de/
+  https://wordledeutsch.org/

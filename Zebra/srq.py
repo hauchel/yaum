@@ -15,20 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import Select
-
-"""
-find_element(By.ID, ‘id’)
-find_element(By.NAME, ‘name’)
-find_element(By.XPATH, ‘xpath’)
-find_element(By.LINK_TEXT, ‘link_text’)
-find_element(By.PARTIAL_LINK_TEXT, ‘partial_link_text’)
-find_element(By.TAG_NAME, ‘tag_name’)
-find_element(By.CLASS_NAME, ‘class_name’)
-find_element(By.CSS_SELECTOR, ‘css_selector’)
-x.getAttribute()
-x.click()
-x.getText()
-"""    
+  
 class mini():
     
     def __init__(self):
@@ -47,9 +34,7 @@ class mini():
         self.setdiff(0)
         self.settag(0)
         self.spanum=1       # s
-        self.selcols={}     # für jede Spalte enthält []sels nach getsels
-        self.zeinum=1        # z für 
-        self.rulOpts=0      # name von optionen falls space: 0 erstes, 1 zweites
+        self.zeinum=1       # z für 
      
     def startDriver(self):
         service = Service(executable_path=r'D:/greed/chromedriver.exe')
@@ -105,7 +90,6 @@ class mini():
         self.machurl()
         
     def settag(self,ta):
-        tagtab=['','vJan5gzI','VuZTt8Hy','hYpclPe5']
         tagtab=['','vJan5gzI','iHKszShF','0zQrzuF9','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
         if (ta==0): 
             for i in range (len(tagtab)):
@@ -123,7 +107,6 @@ class mini():
         aki=akt.split('/')
         print(len(aki),aki)
         if len(aki)>4:  print(aki[4])
-        print('c:',self.selcols.keys())
  
         print('Anzahl t:',len(self.texte),' a:',len(self.answers))
         
@@ -133,7 +116,7 @@ class mini():
             print(t)
     
     def schreibe(self):        
-        fnam='H'     #+self.tag[:4]+self.diffn
+        fnam='h'     #+self.tag[:4]+self.diffn
         fnam=fnam.replace("-", "")
         print(fnam)
         with open(fnam+'.txt','w',encoding="utf-8",errors="ignore") as f:
@@ -197,16 +180,7 @@ class mini():
                 ans+=p0+p2+", "
             ans=ans[:-2]+"},"
             self.answers.append(ans)
-            
-    def getsels(self):
-        game = self.driver.find_element(By.ID, "game")
-        cols=game.find_elements(By.CLASS_NAME, "column")
-        self.selcols={}
-        for spa  in range(1,len(cols)):
-            sels=cols[spa].find_elements(By.TAG_NAME, "select")
-            print('Spalte',spa,'sels',len(sels))
-            self.selcols[spa]=sels
-    
+                
     def eintrag(self,zei,spa,doppelt=True):
         print('Zei',zei,'spa',spa)
         tx=".question:nth-child("+str(zei)+") li:nth-child("+str(spa)+") .icon"
@@ -214,45 +188,8 @@ class mini():
         if doppelt:
             self.driver.find_element(By.CSS_SELECTOR, tx).click()
             
-    def evalBox(self,spa=1):
-        game = self.driver.find_element(By.ID, "game")
-        cols=game.find_elements(By.CLASS_NAME, "column")
-        if spa < 1: spa=1
-        if spa >len(cols): spa=len(cols)
-        print('Spalte',spa,'cols',len(cols))
-        sels=cols[spa].find_elements(By.TAG_NAME, "select")
-        print('sels',len(sels))
-        self.selcols[spa]=sels
-      
-        z=0
-        for s in sels:
-            select_obj = Select(s)
-            zeil=' '
-            for opt in select_obj.options:
-                #print(f"{opt.get_attribute('value')} | {opt.text}")
-                tx=opt.text
-                t=tx.split()
-                if len(t)==1:
-                    zeil+=t[0] + ' '
-                elif len(t) > 1:        # Verhalten bei space... : wenn Zeile == z verwende  self.rulOpts=0 
-                    print(z,'options',t)
-                    if self.zeinum==z:
-                        zeil+=t[self.rulOpts] + ' '
-                    else:
-                        zeil+=t[0] + ' '
-      
-            current_text = select_obj.first_selected_option.text
-            if z < len(self.props):
-                zeil=self.props[z]+zeil
-                z+=1
-            print(zeil)
-                       
-    
     def onego(self):
-        self.holeText()
-        self.propBox()
-        self.getsels() 
-        self.evalBox() 
+        self.propBox() 
         self.info()
         print("write if ok")
         
@@ -279,8 +216,6 @@ class mini():
                     self.starte()
                 elif tmp=="b":
                     self.holeBox()
-                elif tmp=="c":
-                    self.getsels()                    
                 elif tmp=="g": 
                     self.settag(self.num)
                 elif tmp=="d": 
@@ -293,18 +228,10 @@ class mini():
                     self.eintrag(self.zeinum,self.spanum,tmp=='J')
                 elif tmp=="l" or tmp=="L": 
                     self.lese(tmp=='l')
-                elif tmp=="n": 
-                    self.linksel(self.num)
-                elif tmp=="m": 
-                    self.sammle("https://www.brainzilla.com/logic/zebra/",self.num)
-                elif tmp=="M": 
-                    self.sammle("https://www.ahapuzzles.com/logic/zebra/",self.num)
                 elif tmp=="o": 
                     self.onego()                                          
                 elif tmp=="p": 
                     self.propBox()                      
-                elif tmp=="t":
-                    self.holeText()
                 elif tmp=="q":  
                     if self.driver is not None:
                         self.driver.quit()
@@ -323,10 +250,8 @@ class mini():
                     print('Zeile',self.zeinum)                    
                 else:
                     print(tmp,"? n taG,  n Diff,  stArte, holBox, Propbox, Info, n Spalte,  Lies, Write, Quit")
-                    print("Holen: (nG  nD  Box) oder per Maus, dann O = Text, Prop, selCs, Eval, Info, Write")
-                    print("Eintragen: P, C, L oder einzeln nZ nS nJ X opts")
-                    print("anzlinks dann Brainzilla: m,n  Alphapuzz M,n")
-                    print("Special nZeile nX rulOpts")
+                    print("Holen: (nG  nD  Box) oder per Maus, dann O = Prop,Info, Write")
+                    print("Eintragen: P, C, L oder einzeln nZ nS J")
                     
             except Exception as inst:
                 print ("main Exception "+str(inst))

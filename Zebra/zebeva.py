@@ -23,7 +23,7 @@ def check_substrings(lst):
     for i, w1 in enumerate(lst):
         for j, w2 in enumerate(lst):
             if i != j and w1 in w2:
-                print(f"\n-----> Konflikt: '{w1}' steckt in '{w2}'")
+                print(f"\n-----> Konflikt?: '{w1}' steckt in '{w2}'")
 
 def add_know (line):
     global know
@@ -46,7 +46,7 @@ def check_know (line):
     
         
 if len(sys.argv) == 1:
-    print (sys.argv[0],' fil  [deb] is translate kex ')
+    print (sys.argv[0],' fil  [deb] is translate kex o ')
     sys.exit(4)
 else:
     fnam=sys.argv[1]
@@ -69,7 +69,9 @@ mod=0
 
 with open(fnam+'.txt') as fin:
     fout=open(prologpfad+fnam+'.pl','w')
+    fopt=open(fnam+'.opt','w')
     linno=0
+    condno=0
     for line in fin:
         line = line.strip()
         linno+=1
@@ -98,12 +100,14 @@ with open(fnam+'.txt') as fin:
                 for p in prop: t+=p+','
                 t=t[:-1]+')'
                 puznam=t
-                #print(t+'.')    #call in prolog
                 t+=':-\n'
                 fout.write(t)
-                for t in lins: fout.write(t+'\n')
+                for t in lins: 
+                    fout.write(t+'\n')
+                    fopt.write('! '+t+'\n')
+                fopt.write('= '+str(linno)+'\n')     #to fix line numbers                    
                 
-            else:
+            else: #variablen namen
                 values=line.split()
                 npn=len(values)-1
                 if npos == 0:
@@ -140,7 +144,8 @@ with open(fnam+'.txt') as fin:
                     li+=vna+', '
                 li=li[:-2]+'],'
                 lins.append(li)
-        else:
+        else: # conditions
+            condno +=1
             if line != '':
                 if line[0] != '%': line='% '+line
             line=line.lower()
@@ -151,72 +156,101 @@ with open(fnam+'.txt') as fin:
                 for m in re.finditer(re.escape(w1), line):
                     treffer.append((m.start(), wort))
             # Nach Position sortieren
+            #print('Treffer',treffer)
             fux = [wort for _, wort in sorted(treffer, key=lambda x: x[0])]
             #print (line)
             fund=[]
             t=' '
+            txopt=' '
             for f in fux:
                 fund.append(vn[f])
                 t+=f+':'+vn[f]+'('+vpro[vn[f]]+') ';
-            fout.write(line+t+'\n')
+                txopt+=' '+vn[f]+'.'+vpro[vn[f]] 
+            fout.write('% ' + str(condno) +line[1:] + t +'\n')
+            #print('txopt',txopt)
             fund.append('???')
             fund.append('???')
             #print (fund)
             tx=''
+            ftyp='X'    
+            # e einfache Zuweisung, 
+            # o Oder, i is +-,  j is <>, n next, h direkter Vergleich
+            # b between
             if "first position" in line:
                 tx=tx=fund[0]+" = 1"
+                ftyp='e'
             elif "second position" in line:
                 tx=fund[0]+" = 2"
+                ftyp='e'
             elif "third position" in line or  "position number 3" in line:
                 tx=fund[0]+" = 3"
+                ftyp='e'
             elif "fourth position" in line:
                 tx=fund[0]+" = 4"
+                ftyp='e'
             elif "last position" in line:
                 tx=fund[0]+" = "+str(npos)+""
+                ftyp='e'
             elif "one of the ends" in line:
                 tx="("+fund[0]+"=1;"+fund[0]+"="+str(npos)+")"                
+                ftyp='o'
             elif "is immediately after" in line or "immediately to the right" in line \
                 or "exactly to the right" in line or "immediately follow" in line:                
                 #tx="ele("+fund[0]+"),ele("+fund[1]+"), "+fund[0]+" is "+fund[1]+" + 1 "
                 tx="ele("+fund[1]+"), "+fund[0]+" is "+fund[1]+" + 1 "
+                ftyp='i'
             elif "immediately before" in line or "directly to the left" in line \
                 or "exactly to the left" in line or "immediately to the left" in line:
                 #tx="ele("+fund[0]+"),ele("+fund[1]+"), "+fund[0]+" is "+fund[1]+" - 1 "
                 tx="ele("+fund[1]+"), "+fund[0]+" is "+fund[1]+" - 1 "
+                ftyp='i'
             elif "to the left" in line:
                 tx="ele("+fund[0]+"), ele("+fund[1]+"), "+fund[0]+" < "+fund[1]+" "
+                ftyp='j'
             elif "to the right" in line:
                 tx="ele("+fund[0]+"), ele("+fund[1]+"), "+fund[0]+" > "+fund[1]+" "                
+                ftyp='j'
             elif "somewhere between" in line:
                 tx="in_between("+fund[1]+","+fund[0]+","+fund[2]+") "
+                ftyp='b'
             elif "next to"  in line or "adjacent to" in line or "beside" in line:
                 tx="next_to("+fund[0]+","+fund[1]+") "
+                ftyp='n'
 # extensions     
             elif "first" in line:    
                 tx=fund[0]+" = 1"
+                ftyp='e'
             elif "second" in line:
                 tx=fund[0]+" = 2"
-            elif "third" in line or "middle" in line:
+                ftyp='e'
+            elif "third" in line or "middle" in line or "centre" in line:
                 tx=fund[0]+" = 3"
-            elif "four" in line:
+                ftyp='e'
+            elif "four" in line or "position 4" in line:
                 tx=fund[0]+" = 4"   
+                ftyp='e'
             elif "fifth" in line:
-                tx=fund[0]+" = 5"     
+                tx=fund[0]+" = 5"  
+                ftyp='e'                
             elif " between " in line:
                 tx="in_between("+fund[1]+","+fund[0]+","+fund[2]+") "     
+                ftyp='b'
             elif " after " in line:
-                tx="ele("+fund[0]+"),ele("+fund[1]+"), "+fund[0]+" is "+fund[1]+" + 1 "                
+                tx="ele("+fund[0]+"),ele("+fund[1]+"), "+fund[0]+" is "+fund[1]+" + 1 "
+                ftyp='i'
             else :
                 if line!='': tx=fund[0]+" = "+fund[1]+" , %? " #hoffentlich
+                ftyp='h'
             
             if tx !='':
                 fout.write(tx+" ,\n")
+                fopt.write(f"{condno} {ftyp} "+txopt+"\n")
                 if '???' in tx:
                     print("\n",linno,line)
                     print(tx)
                     
                 
-    # 
+    fopt.close()
     anz=len(prop)
 
     for i in range(anz): 
@@ -238,9 +272,8 @@ with open(fnam+'.txt') as fin:
         fout.write('ele('+str(i)+'). ')
 #
     fout.write('\n\nstart :-\n')
-#   puzz(Shirt,Name,Impersonation,Prize),
-    fout.write(puznam+' ,\n')
-    fout.write('fail.\n')
+    fout.write(puznam+' .\n')
+    #fout.write('fail.\n')  nur eine Lösung, aufruf start. oder  time(start).
 	
 
     tx="""																																																						
