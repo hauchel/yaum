@@ -7,7 +7,7 @@ Voraussetzung:
 Chrome und passenden Chromedriver
 MySql und Datenbank wordle mit Tabelle worte
 python meine Version ist 3.12.3
-wordle.py, inp.py, wordledb.py
+wordle.py, inp.py, wordledb.py sowie eine worte.txt falls von Textdatei eingelesen
 
 Konfiguration in wordle.py __init__: 
 Chromedriver location           self.driverloc = r'D:/greed/chromedriver.exe'
@@ -44,11 +44,11 @@ oder manuell für die 5 Buchstaben eingeben
 Dann wieder    
 p   prüfen, d.h. nächstes passende Wort finden (main Exception list index out of range: keins gefunden)
 k   senden
-h   holen
+h   holen 
 usw 
 
 x   macht holen prüfen senden bis gelöst, kann mit # unterbrochen werden, das ist erforderlich wenn ein wort nicht erlaubt ist. 
-s   Neustart
+s   Neustart für anderes puzzle
 q   beenden
 
 
@@ -64,9 +64,9 @@ Zudem Database Maintenance Funktionen in wordldb.py, siehe dort
 Wortauswahl: 
 In DB steht für jedes Wort die Summe der Buchstabenhäufigkeit in der deutschen Sprache:
        self.hauf = {'A': 65, 'B': 19, 'C':30, 'D': 50, 'E': 174, 'F':16, 'G':30,
-                     'H':47,'I':75,'J': 2, 'K': 12, 'L':34,'M': 25, 'N':98,
-                     'O':25,'P':8,'Q': 0, 'R': 70, 'S':72,'T': 61, 'U':43,
-                     'V':7,'W':19,'X': 0, 'Y':0, 'Z':11 }
+                    'H':47,'I':75,'J': 2, 'K': 12, 'L':34,'M': 25, 'N':98,
+                    'O':25,'P':8,'Q': 0, 'R': 70, 'S':72,'T': 61, 'U':43,
+                    'V':7,'W':19,'X': 0, 'Y':0, 'Z':11 }
 Höchster Wert für Worte in denen jeder Buchstabe nur einmal vorkommt ist SIENA mit 484 oder STERN und ERNST mit 475(vergl  ERNSTL). 
 
 

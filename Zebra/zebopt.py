@@ -76,7 +76,7 @@ with open(fnam) as fin:
                 kcnt[zl[i]]+=1
             else:
                 kcnt[zl[i]]=1
-print('\n Gruppen in Zeile:')                
+print('\nGruppen in Zeile:')                
 for key, value in sorted(lastgrp.items(), key=lambda item: item[1]):
     print(key, value, allgrp[key])
     

@@ -3,14 +3,16 @@
 # 1 https://www.spiegel.de/games/wordle-auf-deutsch-kostenlos-online-spielen-a-cbfa309d-a8ad-4d7d-9234-28b09b945834
 # 2 https://wrdl.de/
 # 3 https://begriffel.tagesspiegel.de/  identisch wrdl
-# https://www.wördle.de/
-# https://wordle-de.github.io/
-# https://wordledeutsch.org/
+# 4 https://wordledeutsch.org/
+# 5 https://www.wördle.de/        sehr geringer Wortschatz
+# 6 https://wordle-de.github.io/  nur einmal 24 Stunden
+
 
 import sys
 import os
 import time
 import pygetwindow as gw
+import psutil
 import traceback
 
 from inp import inp
@@ -21,7 +23,19 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
-
+""" Gedächtnis wie ein Sieb:
+find_element(By.ID, ‘id’)
+find_element(By.NAME, ‘name’)
+find_element(By.XPATH, ‘xpath’)
+find_element(By.LINK_TEXT, ‘link_text’)
+find_element(By.PARTIAL_LINK_TEXT, ‘partial_link_text’)
+find_element(By.TAG_NAME, ‘tag_name’)
+find_element(By.CLASS_NAME, ‘class_name’)
+find_element(By.CSS_SELECTOR, ‘css_selector’)
+x.getAttribute()
+x.click()
+x.getText()
+"""    
 class mini():
     
     def __init__(self):
@@ -29,7 +43,8 @@ class mini():
         self.driverloc = r'D:/greed/chromedriver.exe'
         self.arg="user-data-dir=C:\\Users\\hh\\AppData\\Local\\Google\\Chrome\\chess"
         self.base_url = "https://www.wortlisten.com/worter5buchstaben" # oder 
-        os.system("title Wordler")
+        os.system("title Woddler")
+        self.warte = 3  # Wartezeit nach Senden
         self.inp=inp()
         self.driver=None
         self.puzurl=""
@@ -38,27 +53,14 @@ class mini():
         self.page=1
         self.verbose=False
         self.words=['HALLO']
-        self.kann8=False
+        self.kann9=False
         self.website(3,False)  #Default
-        self.warte = 3  # Wartezeit nach Senden
         try:
             self.db=ldb()  
         except Exception as inst:
             print ("Ohne mysql!! "+str(inst))
             self.db = None
                     
-    def starte(self):
-        print("Starte")
-        self.wordp=0
-        self.zeilen=['']
-        self.zeilnum=0
-
-        self.notin=[]                   # buchstaben nicht drin
-        self.drin=[]                    # buchstaben  drin
-        self.dort=["","","","",""]      # muss an dieser Stelle
-        self.netdort=[[],[],[],[],[]]   # nicht an dieser Stelle
-        self.muss2=[]                   # mindestens 2 mal, nur bei spiegel
-    
     def startDriver(self):
         service = Service(executable_path=self.driverloc)
         options = webdriver.ChromeOptions()
@@ -71,67 +73,50 @@ class mini():
         self.driver = webdriver.Chrome(service=service,options=options)
         self.driver.implicitly_wait(0.5)
         self.driver.set_window_size(700,1080)
-        time.sleep(3)   #
-        wins = gw.getWindowsWithTitle("Wordler")
-        if wins:
-            try:
-                wins[0].restore()
-                wins[0].activate()
-            except Exception as inst:
-                #print ("Keine Ahnung warum: "+str(inst))
-                pass
-        
-    def website(self,num,zeig=True):
-        self.puznum=num
-        if num==1:
-            self.puzurl="https://www.spiegel.de/games/wordle-auf-deutsch-kostenlos-online-spielen-a-cbfa309d-a8ad-4d7d-9234-28b09b945834"
-            self.kann8=True
-        elif num==2:
-            self.puzurl="https://wrdl.de/"
-            self.kann8=False
-        elif num==3:
-             self.puzurl="https://begriffel.tagesspiegel.de/"
-             self.kann8=False
-        elif num==4:
-            self.puzurl="https://wordledeutsch.org/"
-            self.kann8=False
-        else:
-            print(num ,"ist kein gültiger Wert für website.")
-            sys.exit(4)
-        if zeig: print(self.puzurl)
-                  
-    def verbinde(self):
-        if self.driver is None:
-            self.startDriver()
-        self.driver.get(self.puzurl)
-    
-    def hole(self,w):
-        for b in w:
-            if b in self.buref:
-                cla = self.buref[b].get_attribute("class").split()[0] 
-                print(b,cla[4:8])
-        
-    def sende(self,w):
-        actions = ActionChains(self.driver) 
-        actions.send_keys(w)
-        actions.send_keys(Keys.RETURN)
-        actions.perform()
-                 
-    def getKeybrd(self):  # brauchmernetmehr
-        print("Hole Keyboard")
-        for r in range(1,4):    #3 Zeilen
-            zeile=self.driver.find_element(By.CSS_SELECTOR, f".keyboard-row:nth-child({r})")
-            divs = zeile.find_elements(By.TAG_NAME, "div")
-            print(r,'Anzahl div',len(divs))
-            for d in divs:
-                cla = d.get_attribute("class").split()[0] #key-default, key-fail, key-success
-                if cla[:4]=='key-':
-                    self.buval[d.text]=cla[4:8]
-                    self.buref[d.text]=d
-                #print(d.text,cla)
-
-    def getFeld(self):
-        print("Hole Feld")
+        #for i in range(3):
+        #    cpu_usage = psutil.cpu_percent(interval=1)
+        #    print(f"CPU usage: {cpu_usage}%")
+            
+    def getFeld1(self):
+        #Spiegel
+        try:
+            self.driver.switch_to.frame(0)   
+        except:
+            #print("Switch Frame Failed")
+            pass
+        game=self.driver.find_element(By.ID, "game")
+        cells=game.find_element(By.CLASS_NAME,"cell-container")
+        divs = cells.find_elements(By.TAG_NAME, "div")
+        #print('Anzahl div cells',len(divs))
+        i=0         # 0 2 4 6 8  10 12
+        zeile=1     # 1           2
+        spalte=0    # 0 1 2 3 4   0  1
+        while i < len(divs):
+            el  = divs[i]   # 0 Class: cell first-row first-col has-userinput-value is-not-solved
+            #print(f"{i}Tag: {el.tag_name}, Class: {el.get_attribute('class')}, ID: {el.get_attribute('id')}, text {el.text}<")
+            if el.text !='':
+                clns=el.get_attribute('class').split()
+                if self.verbose: print(zeile,i,el.text,end='  ')
+                if 'flipping–incorrect' in clns:
+                    if self.verbose:  print('incorrect')
+                    self.buche(0,el.text,spalte)
+                elif 'flipping-success' in clns:
+                    if self.verbose: print('success')
+                    self.buche(8,el.text,spalte)
+                elif 'flipping-almost' in clns:
+                    if self.verbose: print('almost')
+                    self.buche(1,el.text,spalte)
+                else:
+                    print('Keine Ahnung:',zeile,i,el.text.clns)
+                    raise ValueError('Ferdisch:')
+            i+=2
+            spalte+=1
+            if i % 10 == 0:
+                zeile+=1
+                spalte=0
+  
+    def getFeld2(self):
+        #wdl
         for r in range(1,7):    #6 Zeilen
             zeile=self.driver.find_element(By.CSS_SELECTOR, f".row:nth-child({r})")
             divs = zeile.find_elements(By.TAG_NAME, "div")
@@ -150,11 +135,201 @@ class mini():
                     elif wrt=='succ':
                         self.buche(8,d.text,p)
                         succnt+=1
-                        if succnt==5: raise ValueError('Ferdisch.')
+                        if succnt==5: raise ValueError('Ferdisch:')
                 p+=1
                 
+    def getFeld4(self):
+        # wordledeutsch
+        tiles = self.driver.find_elements(By.CSS_SELECTOR, "game-tile")
+        print('Anzahl game-tile',len(tiles))
+        rows=self.driver.find_elements(By.CLASS_NAME, "row")
+        print('Anzahl rows',len(rows))
+        for r in rows:
+            tiles = r.find_elements(By.CSS_SELECTOR, "game-tile")
+            print('Anzahl tiles',len(tiles))
+            for tile in tiles:
+                letter = tile.get_attribute("letter")
+                evaluation = tile.get_attribute("evaluation")
+                reveal = tile.get_attribute("reveal")
+                print(f"Letter: {letter}, Evaluation: {evaluation}, Reveal: {reveal}")
+                
+                
+    def getFeld(self):
+        print("Hole Feld ",self.puznum)
+        if self.puznum==1:
+            self.getFeld1()
+        elif self.puznum==2:            
+            self.getFeld2()
+        elif self.puznum==3:            
+            self.getFeld2()
+        else:
+            print("Hole geht nicht für ",self.puznum)
+
+    def getKeybrd1(self): 
+        # spiegel
+        try:
+            self.driver.switch_to.frame(0)   
+        except:
+            #print("Switch Frame Failed")
+            pass
+        game=self.driver.find_element(By.ID, "game")
+        zeilen=game.find_elements(By.CLASS_NAME,"hg-row")
+        #print('Anzahl zeilen',len(zeilen))
+        r=1
+        for zeile in zeilen:    #3 Zeilen
+            #print("Zeile",r)
+            divs = zeile.find_elements(By.TAG_NAME, "div")
+            #print(r,'Anzahl div',len(divs))
+            r+=1
+            for d in divs:
+                cla = d.get_attribute("class")
+                bu = d.get_attribute("data-skbtn")
+                if self.verbose: print(bu,cla)
+                if len(bu)==1:
+                    self.buref[bu]=d
+                    clas=cla.split()  #hg-button hg-standardBtn status-1
+                    clas.append('unbek')
+                    if clas[2]=='status-1':
+                        self.buval[bu]='Netdrin'
+                    elif clas[2]=='status-2':
+                        self.buval[bu]='Drin   '
+                    elif clas[2]=='status-3':
+                        self.buval[bu]='Treffer'
+                    else:
+                        self.buval[bu]='unbek  '
+                
+
+    def getKeybrd2(self):  # brauchmernetmehrdanichtssagend
+        for r in range(1,4):    #3 Zeilen
+            zeile=self.driver.find_element(By.CSS_SELECTOR, f".hg-row:nth-child({r})")
+            divs = zeile.find_elements(By.TAG_NAME, "div")
+            print(r,'Anzahl div',len(divs))
+            for d in divs:
+                cla = d.get_attribute("class").split()[0] #key-default, key-fail, key-success
+                if cla[:4]=='key-':
+                    self.buval[d.text]=cla[4:8]
+                    self.buref[d.text]=d
+                #print(d.text,cla)
+    
+    def getKeybrd(self):
+        print("Hole Keyboard ",self.puznum)
+        if self.puznum==1:
+            self.getKeybrd1()
+        elif self.puznum==2:            
+            self.getKeybrd2()
+        elif self.puznum==3:            
+            self.getKeybrd2()
+        else:
+            print("geht nicht für ",self.puznum)
+
+                
+    def website(self,num,zeig=True):
+        self.puznum=num
+        if num==1:
+            self.puzurl="https://www.spiegel.de/games/wordle-auf-deutsch-kostenlos-online-spielen-a-cbfa309d-a8ad-4d7d-9234-28b09b945834"
+            self.kann9=True
+        elif num==2:
+            self.puzurl="https://wrdl.de/"
+            self.kann9=False
+        elif num==3:
+             self.puzurl="https://begriffel.tagesspiegel.de/"
+             self.kann9=False
+        elif num==4:
+            self.puzurl="https://wordledeutsch.org/"
+            self.kann9=False
+        elif num==5:
+            self.puzurl=" https://www.wördle.de/"
+            self.kann9=False
+        elif num==6:
+            self.puzurl="https://wordle-de.github.io/"
+            self.kann9=False
+        else:
+            print(num ,"ist kein gültiger Wert für website.")
+            sys.exit(4)
+        if zeig: print(self.puzurl)
+                  
+    def verbinde(self):
+        if self.driver is None:
+            self.startDriver()
+            time.sleep(1)
+            try:
+                console = gw.getWindowsWithTitle("Woddler")[0]
+                console.activate()
+            except Exception as inst:
+                #print ("Keine Ahnung warum: "+str(inst))
+                pass
+
+        self.driver.get(self.puzurl)
+    
+    def hole(self,w):
+        for b in w:
+            if b in self.buref:
+                cla = self.buref[b].get_attribute("class").split()[0] 
+                print(b,cla[4:8])
+        
+    def sende(self,w):
+        actions = ActionChains(self.driver) 
+        actions.send_keys(w)
+        actions.send_keys(Keys.RETURN)
+        actions.perform()
+    
+    def starte(self):
+        print("Starte")
+        self.wordp=0
+        self.zeilen=['']
+        self.zeilnum=0
+        self.notin=[]                   # buchstaben nicht drin
+        self.drin=[]                    # buchstaben  drin
+        self.dort=["","","","",""]      # muss an dieser Stelle
+        self.netdort=[[],[],[],[],[]]   # nicht an dieser Stelle
+        self.muss2=[]                   # mindestens 2 mal, nur bei spiegel
+        
+    def analy(self,eles):
+        print(f"analy {len(eles)} elements")
+        try:
+            i=0
+            for el in eles:
+                print(f"{i}Tag: {el.tag_name}, Class: {el.get_attribute('class')}, ID: {el.get_attribute('id')}")
+                children = el.find_elements(By.XPATH, "./*")
+                for child in children:
+                    print(f"children Tag: {child.tag_name}, Class: {child.get_attribute('class')}, ID: {child.get_attribute('id')}")
+                
+        except Exception as inst:
+            print ("analy Exception "+str(inst))
+
+    def get_all_attributes(self, element):
+        attributes = self.driver.execute_script(
+        """
+        var el = arguments[0];
+        var attrs = {};
+        for (var i = 0; i < el.attributes.length; i++) {
+            attrs[el.attributes[i].name] = el.attributes[i].value;
+        }
+        return attrs;
+        """,
+        element
+    )
+        print (attributes)
+        return attributes
+    
+    def getFrames(self):
+        iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+        frames = self.driver.find_elements(By.TAG_NAME, "frame")
+        print(f"Number of iframes: {len(iframes)}")
+        print(f"Number of frames:  {len(frames)}")
+        for i in range(len(iframes)):
+            print("iframe",i)
+            try:
+                self.driver.switch_to.frame(i)
+                elements = self.driver.find_elements(By.CSS_SELECTOR, "body > *")
+                print(f"Found {len(elements)} direct elements inside frame")
+                self.analy(elements)
+            except Exception as inst:
+                print ("Frame",i,"Exception "+str(inst)[:60])
+                 
+   
     def checke(self):
-        print('Abgleich:')
+        print('Abgleich Keyboard:')
         for k in sorted(self.buval):
             w=self.buval[k]
             tx=k+'  '+w+'  '
@@ -164,16 +339,7 @@ class mini():
                 tx+='D '
             if k in self.dort:
                 tx+='T '
-            print(tx)
-            
-    def spiBtn1(self):
-        self.driver.switch_to.frame(1)
-        el = self.driver.find_element(By.CSS_SELECTOR, ".hg-row:nth-child(1) > .hg-button:nth-child(1)")
-        print(el.Text)
-
-        print("Attributes:")
-        for k, v in attrs.items():
-            print(f"  {k}: {v}")
+            print(tx)            
          
     def fromfile(self):
         print("Lese von",self.filename)
@@ -303,7 +469,9 @@ class mini():
             return
     
     def buche(self,was,b,pos):
-        # verbucht was von buchstabe an pos
+        # verbucht was von buchstabe b an pos
+        if was==9:
+            if not self.kann9: was=8    # nur Spiegel unterscheidet 8 und 9!
         if self.verbose: print("Bu",was,'für',b,'an',pos)
         if was == 0: # garantiert nicht drin, Problem mehrfaches Auftreten
             if b not in self.notin:
@@ -329,7 +497,7 @@ class mini():
                     if b not in self.netdort[i]:
                         self.netdort[i].append(b)
         else:
-            print("Was'n das?",was)
+            print("Was'n was?",was)
             return False
         return True
         
@@ -341,9 +509,9 @@ class mini():
             print ("%s  %d  "%(self.words[self.wordp],self.wordp),self.dort,self.drin,self.notin)  
             self.pruf()
             self.sende(self.words[self.wordp])
+            print("Sende",self.words[self.wordp],end='   ')
             self.inp.sleepOrKey(self.warte)
-
-    
+ 
     def doit(self):
         numpos=0
         while 1:
@@ -381,7 +549,7 @@ class mini():
                 elif tmp=="e":
                     self.verbinde() 
                 elif tmp=="f":
-                    self.doFix() 
+                    self.getFrames() 
                 elif tmp=="g":
                     self.words=self.db.getData()  
                     self.starte()
@@ -419,11 +587,14 @@ class mini():
                      self.wordp+=1   
                 elif tmp=="-":
                     if self.wordp>0: self.wordp-=1   
+                elif tmp=="#":
+                     self.driver.get(self.driver.current_url)    #refresh falls ungültiges Wort
                 elif tmp=="\r":
                     self.pruf()
                     self.sende(self.words[self.wordp])      
                 else:
-                    print(tmp,"? e=Verbinde, g=Hole von DB, dann (p=Prüfe, k=Sende, h=hole) oder 0=not,1=in,8=richtig,9=nur dort, q=Quit")
+                    print(tmp,"? e=Verbinde, g=Worte von DB, dann (p=Prüfe, k=Sende, h=hole) oder 0=not,1=in,8=richtig,9=nur dort, q=Quit")
+                    print("Debug: a=Stand, b=Keyboard, c=Abgleich f=Frames v=verbose")
             except ValueError as e:
                 print(e)
             except Exception as inst:
@@ -433,9 +604,9 @@ class mini():
                       
 if __name__ == "__main__":
     g=mini()
-    if len(sys.argv)>1:  #zahl gibt 
-        g.website(int(sys.argv[1]))
     g.verbose=False
+    if len(sys.argv)>1:  #zahl gibt 
+        g.website(int(sys.argv[1]),False)
     g.starte()   
     g.doit()
     

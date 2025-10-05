@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# 
+# Interface to Zebra puzzles on
 import sys
 import os
 import pygetwindow as gw
@@ -18,6 +18,7 @@ from selenium.webdriver.support.ui import Select
 class mini():
     
     def __init__(self):
+        self.tagtab=['','640yPFXM','FvGZRfdG','IskYgVJs','ueyPebRM','iHKszShF','0zQrzuF9','vJan5gzI','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
         self.driver=None 
         self.inp=inp()
         self.num=0
@@ -33,11 +34,11 @@ class mini():
         self.diffn=''
         self.tag=''
         self.setdiff(0)
-        self.settag(0)
+        self.set_tag(0)
         self.spanum=1       # s
         self.selcols={}     # für jede Spalte enthält []sels nach getsels
         self.zeinum=1        # z für 
-        self.rulOpts=0      # name von optionen falls space: 0 erstes, 1 zweites
+        self.rulOpts=0      # name von optionen falls space: 0 erstes, 1 zweites 2 Verbinden durch -
      
     def startDriver(self):
         service = Service(executable_path=r'D:/greed/chromedriver.exe')
@@ -52,9 +53,7 @@ class mini():
         self.driver = webdriver.Chrome(service=service,options=options)
         self.driver.implicitly_wait(1)
         self.driver.set_window_size(800,1080)
-        #self.actionChains = ActionChains(self.driver)
-        #self.driver.minimize_window()  
-        
+   
     def starte(self):
         os.system("title Zebra")
         if self.driver is None:
@@ -117,16 +116,28 @@ class mini():
         print('diff',self.diffn,self.diff)
         self.machurl()
         
-    def settag(self,ta):
-        tagtab=['','FvGZRfdG','IskYgVJs','ueyPebRM','iHKszShF','0zQrzuF9','vJan5gzI','VuZTt8Hy','2MpRpQtw','bfWKokYv','WCpe23GC','Zn8dMPLA','hYpclPe5']
+    def set_tag(self,ta):
         if (ta==0): 
-            for i in range (len(tagtab)):
-                print(f"{i:>3}  {tagtab[i]} ")
-        if ta<len(tagtab):
-            self.tag=tagtab[ta]
+            for i in range (len(self.tagtab)):
+                print(f"{i:>3}  {self.tagtab[i]} ")
+        if ta<len(self.tagtab):
+            self.tag=self.tagtab[ta]
         else:
-            self.tag=tagtab[0]
+            self.tag=self.tagtab[0]
         self.machurl()
+    
+    def schreib_tag(self):
+        with open('tage.txt','w',encoding="utf-8",errors="ignore") as ftag:
+            for tag in self.tagtab:
+                ftag.write(tag+'\n')
+        print('Tage geschrieben')
+    
+    def lies_tag(self):
+        with open('tage.txt') as ftag:
+            self.tagtab=[]
+            for line in ftag:
+                self.tagtab.append(line.strip())
+    
 
     def info(self):
         print("\nInfo:")
@@ -144,9 +155,8 @@ class mini():
         #    print(t)
     
     def schreibe(self):        
-        fnam='H' #+self.tag[:4]+self.diffn
-        fnam=fnam.replace("-", "")
-        print(fnam)
+        fnam='h'
+        print('Schreibe',fnam+'.txt')
         with open(fnam+'.txt','w',encoding="utf-8",errors="ignore") as f:
             f.write('! from '+self.driver.current_url+'\n')
             for t in self.zeilen:
@@ -232,10 +242,16 @@ class mini():
                 t=tx.split()
                 if len(t)==1:
                     zeil+=t[0] + ' '
-                elif len(t) > 1:        # Verhalten bei space... : wenn Zeile == z verwende  self.rulOpts=0 
+                elif len(t) > 1:        # Verhalten bei space... : wenn Zeile == z verwende  self.rulOpts 
                     print(z,'options',t)
                     if self.zeinum==z:
-                        zeil+=t[self.rulOpts] + ' '
+                        print('Ersetze')
+                        if self.rulOpts <2:
+                            zeil+=t[self.rulOpts] + ' '
+                        elif self.rulOpts==2 :
+                            zeil+= t[0]+'-'+t[1] + ' '
+                        else:
+                            print('Invalid x',self.rulOpts)
                     else:
                         zeil+=t[0] + ' '
       
@@ -293,7 +309,9 @@ class mini():
                 elif tmp=="c":
                     self.getsels()                    
                 elif tmp=="g": 
-                    self.settag(self.num)
+                    self.set_tag(self.num)
+                elif tmp=="G": 
+                    self.lies_tag()
                 elif tmp=="d": 
                     self.setdiff(self.num)
                 elif tmp=="e":
@@ -302,7 +320,7 @@ class mini():
                     self.info()
                 elif tmp=="j" or tmp=="J": 
                     self.eintrag(self.zeinum,self.spanum,self.num,tmp=='J')
-                elif tmp=="l" or tmp=="L": 
+                elif tmp=="l" or tmp=='L': 
                     self.lese(tmp=='l')
                 elif tmp=="n": 
                     self.linksel(self.num)
@@ -316,6 +334,8 @@ class mini():
                     self.propBox()                      
                 elif tmp=="t":
                     self.holeText()
+                elif tmp=="T":
+                    self.schreib_tag()
                 elif tmp=="q":  
                     if self.driver is not None:
                         self.driver.quit()
@@ -337,7 +357,7 @@ class mini():
                     print("Holen: (nG  nD  Box) oder per Maus, dann O = Text, Prop, selCs, Eval, Info, Write")
                     print("Eintragen: P, C, L oder einzeln nZ nS nJ X opts")
                     print("anzlinks dann Brainzilla: m,n  Alphapuzz M,n")
-                    print("Special nZeile nX rulOpts")
+                    print("Special nZeile nX rulOpts Tag lesen G schreiben ")
                     
             except Exception as inst:
                 print ("main Exception "+str(inst))

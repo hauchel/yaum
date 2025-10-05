@@ -16,7 +16,7 @@ import sys
 import re
 
 know = {}
-debug=False
+debug='' # k lies know 
 
 def check_substrings(lst):
     #print('Prüfe',lst)
@@ -30,7 +30,7 @@ def add_know (line):
     teile = re.findall(r"'(.*?)'", line)
     if len(teile) == 2:
         know [teile[0].lower()]= teile[1].lower()
-    if 't' in debug: print('Know',teile)
+    if 'k' in debug: print('Know',teile)
 
 def check_know (line):
     global know
@@ -42,6 +42,17 @@ def check_know (line):
         if 't' in debug: print('\nneu:',linneu, '\nalt:',line)
     return linneu
 
+def lies_know():
+    with open('know.txt') as fknow:
+        for line in fknow:
+            add_know(line.strip())
+    #zeig_know()
+         
+def zeig_know():
+    print('Knowledge:')
+    for alt, neu in know.items():
+        print(alt,neu)
+    
     
     
         
@@ -67,6 +78,9 @@ lins=[]         #
 puznam=''       # Aufruf
 mod=0
 
+if 'k' in debug:
+    lies_know()
+    
 with open(fnam+'.txt') as fin:
     fout=open(prologpfad+fnam+'.pl','w')
     fopt=open(fnam+'.opt','w')
@@ -87,7 +101,7 @@ with open(fnam+'.txt') as fin:
                     add_know("'youngest' 'Age "+kex[idx]+"'")
                     idx+=npos-1;
                     add_know("'oldest' 'Age "+kex[idx]+"'")
-                if 'k' in debug:
+                if 'i' in debug:
                     #print(lins)
                     print ('\nProp =',prop)
                     print ('\nPos =',npos)

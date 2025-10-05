@@ -141,7 +141,7 @@ if __name__ == "__main__":  # Test / Wartungsfunktionen wenn direkt aufgerufen, 
     k.verbose=True
     if 0:
         k.newtab()   # ggf worte_neu vorher löschen, dann in worte umbenennen
-    if 1:
+    if 0:
         k.verbose=False
         k.writefile()   # überschreibt bestehende!
     if 0:
