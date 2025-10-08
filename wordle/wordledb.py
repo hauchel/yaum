@@ -75,8 +75,15 @@ class ldb():
             w[t[0]]=t[1]
         return w
     
-    def getData(self):
-        return self.getManyOne("select wort from worte order by dup asc, hauf desc")
+    def getDataBu(self):
+        return self.getManyOne("select wort from worte order by prio desc, dup asc, buhauf desc")
+        
+    def getDataWo(self):
+        return self.getManyOne("select wort from worte order by prio desc, dup asc, worthauf desc")
+
+    def getWortHauf(self):
+        return self.getDict("select wort, worthauf from worte order by worthauf desc")
+    
     
     def numDup(self,w):
         n=0
@@ -103,21 +110,21 @@ class ldb():
         erg=k.getManyOne("select wort from worte where hauf=0 limit "+str(n))
         for w in erg:
             dup=self.numHauf(w)
-            self.execc("update worte set hauf ="+str(dup)+" where wort ='"+w+"';")
-                
+            self.execc("update worte set buhauf ="+str(dup)+" where wort ='"+w+"';")
+ 
+    def setWortHauf(self,w,n):
+        self.execc("update worte set worthauf ="+str(n)+" where wort ='"+w+"';")                
+    
     def loadfile(self):
         self.execc("delete FROM worte;") #!!
         self.execc("LOAD DATA LOCAL INFILE 'd:greed/d.txt' INTO TABLE worte CHARACTER SET UTF8MB4;")
 
     def writefile(self):
-        daten=self.getData()
+        hauf=self.getWortHauf()
         filnam='worte.txt'
-        print(len(daten),'nach',filnam)
+        print(len(hauf),'nach',filnam)
         with open(filnam, "w", encoding="utf-8") as f:
-            for d in daten: f.write(f"{d}\n")
-    
-    def updatehauf(self):
-        tx =" UPDATE worte t1 JOIN worte_hauf t2 ON t1.wort = t2.wort  SET t1.anzahl = t2.anzahl;"
+            for d in hauf: f.write(f"{d}  {hauf[d]}\n")
         
     def delwort(self,w):
         self.execc("delete FROM worte where wort='"+w+"';")
@@ -128,20 +135,25 @@ class ldb():
 	`wort` VARCHAR(5) NOT NULL DEFAULT '' COLLATE 'utf8mb4_general_ci',
 	`prio` SMALLINT(5) UNSIGNED NOT NULL DEFAULT '0',
 	`dup` SMALLINT(5) UNSIGNED NOT NULL DEFAULT '99',
-	`hauf` INT(11) NULL DEFAULT '0',
-	`anzahl` INT(11) NULL DEFAULT '0',
+	`buhauf` INT(11) NULL DEFAULT '0',
+	`worthauf` INT(11) NULL DEFAULT '0',
 	PRIMARY KEY (`wort`) USING BTREE)
     COLLATE='utf8mb4_general_ci'
     ENGINE=InnoDB;
 """
         self.execc(tx)
 
-if __name__ == "__main__":  # Test / Wartungsfunktionen wenn direkt aufgerufen, einfach 0 in 1 ändern
+if __name__ == "__main__":
+# Test / Wartungsfunktionen wenn direkt aufgerufen, einfach 0 in 1 ändern 
+# oder in python 
+# from wordledb import ldb
+# k=ldb()
+# z.B. t=k.getWortHauf()
     k=ldb()  
     k.verbose=True
     if 0:
         k.newtab()   # ggf worte_neu vorher löschen, dann in worte umbenennen
-    if 0:
+    if 1:
         k.verbose=False
         k.writefile()   # überschreibt bestehende!
     if 0:
@@ -153,7 +165,7 @@ if __name__ == "__main__":  # Test / Wartungsfunktionen wenn direkt aufgerufen, 
         k.verbose=False
         k.updDup(2000)
     if 0:
-       print(k.numHauf("COUCH"))
+        k.setWortHauf("COUCH",44)
     if 0:
         k.verbose=False
         k.updHauf(1000)       

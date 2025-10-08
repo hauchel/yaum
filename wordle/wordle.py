@@ -26,6 +26,7 @@ class mini():
         os.system("title Woddler")
         self.verbose=False
         self.words=['HALLO']
+        self.worthauf={}
         self.kann9=False
         self.warte = 3  # Wartezeit nach Senden
 
@@ -48,19 +49,24 @@ class mini():
         self.dort=["","","","",""]      # muss an dieser Stelle
         self.netdort=[[],[],[],[],[]]   # nicht an dieser Stelle
         self.muss2=[]                   # mindestens 2 mal, nur bei spiegel
-         
-    def checke(self):
+    
+    def setWebsite(self,num,zeig):
+        self.sele.website(num,zeig)
+        self.kann9 = (num==1)
+            
+    def checkbd(self):
         print('Abgleich Keyboard:')
         for k in sorted(self.sele.buval):
-            w=self.sele.buval[k]
-            tx=k+'  '+w+'  '
-            if k in self.notin: 
-                tx+='N '
-            if k in self.drin: 
-                tx+='D '
-            if k in self.dort:
-                tx+='T '
-            print(tx)            
+            w=self.sele.buval[k] # 'unbek' 'Netdr' 'Drinn' 'Treff'
+            if w !='unbek': 
+                tx=k+'  '+w+'  '
+                if k in self.notin: 
+                    tx+='N '
+                if k in self.drin: 
+                    tx+='D '
+                if k in self.dort:
+                    tx+='T '
+                print(tx)            
          
     def fromfile(self):
         print("Lese von",self.filename)
@@ -84,10 +90,11 @@ class mini():
         print("!drin: ",self.notin)
         print("dort : ",self.dort)
         print("!dort: ",self.netdort)
-        #print("cnt2",self.muss2)
+        print("cnt2 : ",self.muss2)
     
     def skipNotin(self):
         # geht durch Wortliste bis keine verbotenen mehr im wort
+        # returnt WordPointerChanged d.h alle Prüfungen nochmal von vorne
         if self.verbose: print("\nskipNotin",end=': ')
         wpc=False
         while True:
@@ -98,10 +105,10 @@ class mini():
                 if b in w:
                     sk=True
                     break
-            if sk:
+            if sk: # Bedingung nicht erfüllt, nimm nächsten
                 wpc=True
                 self.wordp+=1 
-            else:
+            else:  # Bedingung erfüllt
                 return wpc               
                 
     def skipDrin(self):
@@ -116,10 +123,10 @@ class mini():
                   if b not in w:
                       sk=True
                       break
-              if sk:
+              if sk: 
                   wpc=True
                   self.wordp+=1 
-              else:
+              else: 
                   return wpc
     
     def skipMuss2(self):
@@ -181,18 +188,35 @@ class mini():
               return wpc         
           
     def pruf(self):
+        # erhöht wordp so lange bis alle Bedingungen ok
         while True:
             self.skipDrin()
             if self.skipNotin(): continue
-            #if self.skipMuss2(): continue
+            if self.kann9:
+                if self.skipMuss2(): continue
             if self.skipNetdort(): continue
             if self.skipDort(): continue
             return
     
+    def prufalle(self):
+        n=10
+        print (f"Finde nexte {n} passende:")
+        savewp=self.wordp
+        i=10
+        try:
+            while i>0:
+                self.pruf()
+                print(f"{self.words[self.wordp]}  {self.wordp:>5}")  # erfüllt alle Bedingungen
+                self.wordp+=1
+                i-=1
+        except IndexError:
+            pass
+        self.wordp =savewp    
+        
     def buche(self,was,b,pos):
         # verbucht was von buchstabe b an pos
         if was==9:
-            if not self.kann9: was=8    # nur Spiegel unterscheidet 8 und 9!
+            if not self.kann9: was=8    # nur Spiegel unterscheidet 7, 8 und 9!
         if self.verbose: print("Bu",was,'für',b,'an',pos)
         if was == 0: # garantiert nicht drin, Problem mehrfaches Auftreten
             if b not in self.notin:
@@ -204,15 +228,20 @@ class mini():
                 self.drin.append(b)
             if b not in self.netdort[pos]:
                 self.netdort[pos].append(b)
-        elif was == 7:  # loesche aus notin
-            if b in self.notin:
-                self.notin.remove(b)
+        elif was == 7:  # richtig, müssen 2 sein
+            self.dort[pos]=b
+            if b not in self.drin:
+                self.drin.append(b)
+            if b not in self.muss2:
+                self.muss2.append(b)
         elif was == 8:          # richtig aber multiple möglich
               self.dort[pos]=b   
-              #if b not in self.muss2:
-              #    self.muss2.append(b)
+              if b not in self.drin:
+                self.drin.append(b)
         elif was == 9:          # garantiert nur dort richtig
             self.dort[pos]=b
+            if b not in self.drin:
+                self.drin.append(b)
             for i in range(5):
                 if i != pos:
                     if b not in self.netdort[i]:
@@ -225,9 +254,17 @@ class mini():
     def getmyFeld(self):
         buxs=self.sele.getFeld()
         if self.verbose: print(buxs)
-        for bux in buxs:
-            self.buche(bux[0],bux[1],bux[2])
-        
+        if self.kann9:
+            self.sele.getKeybrd()
+        for bux in buxs: #[8,bu,spalte]
+            if self.kann9: #unterscheidet 7,8,9
+                if bux[0]==8:
+                    self.sele.getKeywert(bux[1])
+                    w=self.sele.buval[bux[1]] # 'unbek' 'Netdr' 'Multi' 'Drinn' 'Einzg'
+                    if w=='Einzg': bux[0]=9
+                    elif w=='Multi': bux[0]=7
+            self.buche(bux[0],bux[1],bux[2])           
+            
     def auto(self):
         print ("Automatisch")  
         self.starte()
@@ -241,8 +278,15 @@ class mini():
  
     def doit(self):
         numpos=0
-        print('Hi, g oder r für Wortschatz, dann e zum Aufruf der website',self.sele.puzurl)
-        print('dann x zum Lösen oder einzeln k h p  oder manuell k (0 1 8 9) p ')
+        try:
+            self.words=self.db.getDataWo() 
+            self.worthauf=self.db.getWortHauf()
+        except Exception as inst:
+           print ("keine Datenbank."+str(inst))
+           
+            
+        print('\nHi. f BuHauf, g WortHauf oder r Text für Wortschatz, dann e zum Aufruf der website',self.sele.puzurl)
+        print('dann x zum Lösen oder einzeln o oder  h p k oder manuell k (0 1 8 9) p ')
         while 1:
             try: 
                 l=len(self.words)
@@ -250,7 +294,10 @@ class mini():
                     print("Limit ",l)
                     self.wordp=l-1
                 w=self.words[self.wordp]
-                print ("%s  %d of %d"%(w,self.wordp,l),self.dort,self.drin,self.notin,"\x1B[0K")  
+                if w in self.worthauf:
+                    print ("%s (%d) %d of %d"%(w,self.worthauf[w],self.wordp,l),self.dort,self.drin,self.notin,"\x1B[0K")  
+                else:
+                    print ("%s  %d of %d"%(w,self.wordp,l),self.dort,self.drin,self.notin,"\x1B[0K")  
                 if numpos>0: print("\x1B["+str(numpos)+"C",end="",flush=True)
                 tmp= self.inp.getch()  
                 print (tmp,end="",flush=True)
@@ -269,20 +316,23 @@ class mini():
                 elif tmp=="b":
                     self.sele.getKeybrd()                        
                 elif tmp=="c":
-                    self.checke()                        
+                    self.checkbd()                        
                 elif tmp=="d":
                     self.skipDrin()              
                 elif tmp=="e":
                     self.sele.verbinde() 
                 elif tmp=="f":
-                    self.sele.getFrames() 
+                    self.words=self.db.getDataBu()  
+                    self.worthauf=self.db.getWortHauf()  # falls geändert
+                    self.starte()
                 elif tmp=="g":
-                    self.words=self.db.getData()  
+                    self.words=self.db.getDataWo()  
+                    self.worthauf=self.db.getWortHauf()  # falls geändert                    
                     self.starte()
                 elif tmp=="h":
                     self.getmyFeld()   
                 elif tmp=="i":
-                    self.skipNotin()
+                    self.prufalle()
                 elif tmp=="k":
                     self.sele.sende(self.words[self.wordp])                    
                 elif tmp=="L":      
@@ -293,6 +343,10 @@ class mini():
                     self.skipMuss2()
                 elif tmp=="n":
                     self.skipNetdort()
+                elif tmp=="o":
+                    self.getmyFeld()                       
+                    self.pruf()
+                    self.sele.sende(self.words[self.wordp])                    
                 elif tmp=="p":
                     self.pruf()
                 elif tmp=="q":
@@ -316,14 +370,16 @@ class mini():
                     if self.wordp>0: self.wordp-=1   
                 elif tmp=="#":
                      self.sele.refresh()
-                elif tmp=="\r":
-                    self.pruf()
-                    self.sele.sende(self.words[self.wordp])      
+#                elif tmp=="\r":
+#                    self.pruf()
+#                    self.sele.sende(self.words[self.wordp])      
                 else:
-                    print(tmp,"? e=Verbinde, g=Worte von DB, dann (p=Prüfe, k=Sende, h=hole) oder 0=not,1=in,8=richtig,9=nur dort, q=Quit")
-                    print("Debug: a=Stand, b=Keyboard, c=Abgleich f=Frames v=verbose")
+                    print(tmp,"? e=Verbinde, f=BuHauf g =WortHauf  r=worte.txt, dann (p=Prüfe, k=Sende, h=hole) oder 0=not,1=in,8=richtig,9=nur dort, q=Quit")
+                    print("Debug: a=Stand, b=Keyboard, c=Abgleich i=prufalle v=verbose")
             except ValueError as e:
                 print(e)
+            except IndexError:                
+                print('Am Ende')
             except Exception as inst:
                 print ("main Exception "+str(inst))
                 print(traceback.format_exc())
@@ -333,8 +389,7 @@ if __name__ == "__main__":
     g=mini()
     g.verbose=False
     if len(sys.argv)>1:  #zahl gibt 
-        g.sele.website(int(sys.argv[1]),False)
-    g.words=g.db.getData()  
+        g.setWebsite(int(sys.argv[1]),False) 
     g.starte()   
     g.doit()
     

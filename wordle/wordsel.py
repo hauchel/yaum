@@ -135,7 +135,7 @@ class wosel():
                 
                 
     def getFeld(self):
-        print("Hole Feld ",self.puznum)
+        #print("Hole Feld ",self.puznum)
         if self.puznum==1:
             return self.getFeld1()
         elif self.puznum==2:            
@@ -146,6 +146,24 @@ class wosel():
             print("Hole geht nicht für ",self.puznum)
             return []
 
+    def getKeywert(self,bu):
+        # holt keyboard für bu
+        cla = self.buref[bu].get_attribute("class")
+        #if self.verbose: print('keywert',bu,cla)
+        clas=cla.split()  #A hg-button hg-standardBtn status-3 multiple-status
+        clas.append('unbek')
+        if clas[2]=='status-1':
+            self.buval[bu]='Netdr'
+        elif clas[2]=='status-2':
+            self.buval[bu]='Drinn'
+        elif clas[2]=='status-3':
+            if 'multiple-status' in clas:
+                self.buval[bu]='Multi'
+            else: 
+                self.buval[bu]='Einzg'
+        else:
+            self.buval[bu]='unbek'
+        
     def getKeybrd1(self): 
         # spiegel
         try:
@@ -165,43 +183,17 @@ class wosel():
             for d in divs:
                 cla = d.get_attribute("class")
                 bu = d.get_attribute("data-skbtn")
-                if self.verbose: print(bu,cla)
+                #if self.verbose: print(bu,cla)
                 if len(bu)==1:
                     self.buref[bu]=d
-                    clas=cla.split()  #hg-button hg-standardBtn status-1
-                    clas.append('unbek')
-                    if clas[2]=='status-1':
-                        self.buval[bu]='Netdrin'
-                    elif clas[2]=='status-2':
-                        self.buval[bu]='Drin   '
-                    elif clas[2]=='status-3':
-                        self.buval[bu]='Treffer'
-                    else:
-                        self.buval[bu]='unbek  '
-                
-
-    def getKeybrd2(self):  # brauchmernetmehrdanichtssagend
-        for r in range(1,4):    #3 Zeilen
-            zeile=self.driver.find_element(By.CSS_SELECTOR, f".hg-row:nth-child({r})")
-            divs = zeile.find_elements(By.TAG_NAME, "div")
-            print(r,'Anzahl div',len(divs))
-            for d in divs:
-                cla = d.get_attribute("class").split()[0] #key-default, key-fail, key-success
-                if cla[:4]=='key-':
-                    self.buval[d.text]=cla[4:8]
-                    self.buref[d.text]=d
-                #print(d.text,cla)
+                    self.getKeywert(bu)
     
     def getKeybrd(self):
-        print("Hole Keyboard ",self.puznum)
+        #print("Hole Keyboard ",self.puznum)
         if self.puznum==1:
             self.getKeybrd1()
-        elif self.puznum==2:            
-            self.getKeybrd2()
-        elif self.puznum==3:            
-            self.getKeybrd2()
         else:
-            print("geht nicht für ",self.puznum)
+            print("getKeybrd nicht für ",self.puznum)
 
                 
     def website(self,num,zeig=True):
