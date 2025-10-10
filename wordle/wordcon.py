@@ -8,11 +8,12 @@
 import sys
 from wordledb import ldb
 
-verbo='n'
-db=ldb()  
+verbo='u'
+umlins=True        # insert worte mit 1 umlaut  
 linnum=0            #
-hauf={}
+hauf={}             # aus db gelesene haufigkeiten
 indb=[]             # nur worte schon in DB
+db=ldb()
 
 if len(sys.argv) < 2:
     fnam='ids.txt'
@@ -20,12 +21,24 @@ else:
     fnam=sys.argv[1]
 print (sys.argv[0],"process", fnam)
  
-indb=db.getWortHauf()
 with open(fnam, "r", encoding="utf-8") as fin:
     for line in fin:
         linnum+=1
         beg=line.strip().split()
         w=beg[1]
+        if len(w) == 4: # 1 Umlaut?
+            if not umlins:  continue        
+            if not any(ord(ch) > 127 for ch in w): continue
+            w=w.upper()
+            print("Nicht-ASCII-Zeichen", beg)
+            w=w.replace("Ä", "AE").replace("Ö", "OE").replace("Ü", "UE")
+            print('Umlins',w)
+            if len(w)!=5: continue        
+            if not all('A' <= ch <= 'Z' for ch in w): continue
+            if w not in hauf:
+                hauf[w]=0
+                db.insWort(w,1,0)   
+        
         if len(w) != 5: continue
         if any(ord(ch) > 127 for ch in w):
             #print("Nicht-ASCII-Zeichen", beg) 
@@ -36,10 +49,10 @@ with open(fnam, "r", encoding="utf-8") as fin:
            if h > hauf[w]: hauf[w]=h
         else:
             hauf[w]=h
-    #if linnum >20: break
+        #if linnum >100: break
 
 print('Anz Zeilen',linnum)
-
+indb=db.getAllWortHauf()
 # Nach Wert absteigend sortieren
 sorted_items = sorted(hauf.items(), key=lambda x: x[1], reverse=True)
 # In Datei schreiben

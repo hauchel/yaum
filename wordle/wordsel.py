@@ -5,6 +5,7 @@ import sys
 import os
 import time
 import psutil
+import pyautogui
 import traceback
 
 from selenium import webdriver
@@ -12,19 +13,31 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import JavascriptException, NoSuchElementException
 """ Gedächtnis wie ein Sieb:
 find_element(By.ID, ‘id’)
-find_element(By.NAME, ‘name’)
-find_element(By.XPATH, ‘xpath’)
+find_element(By.NAME, ‘name’)  <name letters="si" length="5"></game-row>
+find_element(By.XPATH, ‘xpath’) root: /html/body/...  relative //html/body/... kaputt html/body/...
+All descendants: './/*',  Only direct children: './*',  All <div> descendants: './/div',  Direct divs: './div'
 find_element(By.LINK_TEXT, ‘link_text’)
 find_element(By.PARTIAL_LINK_TEXT, ‘partial_link_text’)
 find_element(By.TAG_NAME, ‘tag_name’)
 find_element(By.CLASS_NAME, ‘class_name’)
 find_element(By.CSS_SELECTOR, ‘css_selector’)
-x.getAttribute()
-x.click()
+    by ID	        #myid	        find_element(By.CSS_SELECTOR, "#myid")
+    by class	    .btn	        find_element(By.CSS_SELECTOR, ".btn")
+    by attribute	[name='email']	find_element(By.CSS_SELECTOR, "[name='email']")
+    by hierarchy	div > span	    find_element(By.CSS_SELECTOR, "div > span")
+    everything	*	                find_elements(By.CSS_SELECTOR, "*")
+
+x.get_attribute("id"))
+x.tag_name
+x.text
+x.click()  if  x.is_displayed() and x.is_enabled()
 x.getText()
+ShadowRoot .find_element(), .find_elements() only
 """    
+
 class wosel():
     
     def __init__(self):
@@ -85,7 +98,7 @@ class wosel():
                     buli.append ([1,el.text,spalte])
                 else:
                     print('Kein flipping:',zeile,i,el.text,clns)
-                    raise ValueError('Ferdisch:')
+                    raise ValueError('Ferdisch')
             i+=2
             spalte+=1
             if i % 10 == 0:
@@ -114,34 +127,97 @@ class wosel():
                     elif wrt=='succ':
                         buli.append([8,d.text,p])
                         succnt+=1
-                        if succnt==5: raise ValueError('Ferdisch:')
+                        if succnt==5: raise ValueError('Ferdisch')
                 p+=1
         return buli
         
     def getFeld4(self):
-        # wordledeutsch not supported
-        tiles = self.driver.find_elements(By.CSS_SELECTOR, "game-tile")
-        print('Anzahl game-tile',len(tiles))
-        rows=self.driver.find_elements(By.CLASS_NAME, "row")
-        print('Anzahl rows',len(rows))
-        for r in rows:
-            tiles = r.find_elements(By.CSS_SELECTOR, "game-tile")
-            print('Anzahl tiles',len(tiles))
-            for tile in tiles:
-                letter = tile.get_attribute("letter")
-                evaluation = tile.get_attribute("evaluation")
-                reveal = tile.get_attribute("reveal")
-                print(f"Letter: {letter}, Evaluation: {evaluation}, Reveal: {reveal}")
-                
-                
+        # wordledeutsch nervt mit shadow-root /html/body/game-app//game-theme-manager/div/game-modal
+        # game-app shadow-root game-theme-manager  shadow-root div id=game
+        # 
+        buli=[]
+        e = self.find_dom("game-app", "game-theme-manager")
+        board = e.find_element(By.ID,"board")
+        rows = board.find_elements(By.TAG_NAME,"game-row")
+        #print('Anzahl game-row',len(rows))
+        for row in rows:
+            lett=row.get_attribute("letters")
+            if lett!='':
+                if self.verbose: print("game-row",lett)
+                if lett is None:
+                    return buli
+                shar = self.driver.execute_script("return arguments[0].shadowRoot", row)
+                tiles = shar.find_elements(By.CSS_SELECTOR, "game-tile")	
+                #print('Anzahl tiles',len(tiles))
+                p=0
+                succnt=0
+                for tile in tiles:
+                    bu=tile.get_attribute("letter").upper()
+                    #print(bu,tile.get_attribute("evaluation") )
+                    shat = self.driver.execute_script("return arguments[0].shadowRoot", tile)
+                    divs = shat.find_elements(By.CSS_SELECTOR, "div")	
+                    #print('Anzahl divs',len(divs))     
+                    wrt=divs[0].get_attribute("data-state")  # Gott seis getrommelt und gepfiffen...
+                    if wrt=='absent':
+                        buli.append([0,bu,p])
+                    elif wrt=='present':
+                        buli.append([1,bu,p])
+                    elif wrt=='correct':
+                        buli.append([8,bu,p])
+                        succnt+=1
+                        if succnt==5: raise ValueError('Ferdisch')
+                    else:
+                        print("getFeld4 ?? wrt",wrt) 
+                        raise ValueError('Unbekannt?')
+                    p+=1
+        return  buli     
+
+    def nachFeld4(self):
+        # stellt fest ob pop-up da, dann klick button Nochmal, etwas nifty
+        e = self.find_dom("game-app", "game-theme-manager")
+        gam=e.find_element(By.ID,"game")
+        dir=gam.find_elements(By.XPATH, "./*")      #3 is game-modal open
+        x=self.driver.execute_script("return arguments[0].shadowRoot", dir[3])  #returns shadow_root
+        el=x.find_elements(By.CSS_SELECTOR, '*')    # 4 is close-icon
+        if el[4].is_displayed():
+            print('Displayed')
+        else:
+            print('Not Displayed')
+            return []
+        mo=dir[3].find_elements(By.XPATH,'./*')     # mo[0] game-stats
+        x=self.driver.execute_script("return arguments[0].shadowRoot", mo[0])  #returns shadow_root
+        el=x.find_elements(By.CSS_SELECTOR, '#refresh-button')     
+        el[0].click()
+    
+    def find_dom(self, *selectors):
+        """
+        Traverses nested shadow roots using CSS selectors.
+        Example:
+            element = self.find_in_shadow_dom("game-app", "game-theme-manager", "game-row")
+        """
+        script = "let el = document.querySelector(arguments[0]);"
+        # Chain each shadow root
+        for i in range(1, len(selectors)):
+            script += f"if (el) el = el.shadowRoot && el.shadowRoot.querySelector(arguments[{i}]);"
+        script += "return el;"
+        try:
+            element = self.driver.execute_script(script, *selectors)
+            if not element:
+                raise NoSuchElementException(f"Element not found for chain: {' > '.join(selectors)}")
+            return element
+        except JavascriptException as e:
+            raise RuntimeError(f"JavaScript error while traversing shadow DOM: {e}")
+            
     def getFeld(self):
-        #print("Hole Feld ",self.puznum)
+        print("Hole Feld")
         if self.puznum==1:
             return self.getFeld1()
         elif self.puznum==2:            
             return self.getFeld2()
         elif self.puznum==3:            
             return self.getFeld2()
+        elif self.puznum==4:            
+            return self.getFeld4()            
         else:
             print("Hole geht nicht für ",self.puznum)
             return []
@@ -224,7 +300,11 @@ class wosel():
     def verbinde(self):
         if self.driver is None:
             self.startDriver()
-            time.sleep(1)
+            time.sleep(0.1)
+            # will Fokus zurück, geht nicht mit
+            # console = gw.getWindowsWithTitle("Zebra")[0]
+            # console.activate()
+            pyautogui.hotkey("alt", "tab") 
         self.driver.get(self.puzurl)
         
     def sende(self,w):
@@ -254,22 +334,30 @@ class wosel():
     )
         print (attributes)
         return attributes
-    
+            
     def getFrames(self):
         iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
         frames = self.driver.find_elements(By.TAG_NAME, "frame")
         print(f"Number of iframes: {len(iframes)}")
         print(f"Number of frames:  {len(frames)}")
+        body_html = self.driver.execute_script("return document.body.innerHTML;")
+        print("Entry,body_html")
+        
         for i in range(len(iframes)):
+            self.driver.switch_to.default_content()
             print("iframe",i)
             try:
                 self.driver.switch_to.frame(i)
+                self.pfadler()
+                body_html = self.driver.execute_script("return document.body.innerHTML;")
+                print('iframe',body_html)
                 elements = self.driver.find_elements(By.CSS_SELECTOR, "body > *")
                 print(f"Found {len(elements)} direct elements inside frame")
                 self.analy(elements)
             except Exception as inst:
                 print ("Frame",i,"Exception "+str(inst)[:60])
-                 
+        self.driver.switch_to.default_content()         
+        self.pfadler()
         
     def analy(self,eles):
         print(f"analy {len(eles)} elements")
@@ -286,11 +374,14 @@ class wosel():
 
 # zum debuggen entweder
 # python
-# import wordsel   
-# g=wordsel.wosel() 
-# g.website(2)
-# g.verbinde()
-#
+"""
+import wordsel   
+from selenium.webdriver.common.by import By
+g=wordsel.wosel() 
+g.website(4)
+g.verbinde()
+
+"""
 # oder:
 if __name__ == "__main__":
     g=wosel()
